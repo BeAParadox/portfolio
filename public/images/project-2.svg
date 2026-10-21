@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" width="100%" height="100%">
+  <defs>
+    <linearGradient id="p2-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fdfbf7"/>
+      <stop offset="100%" stop-color="#f5efe6"/>
+    </linearGradient>
+    <linearGradient id="p2-prod" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="520" rx="16" fill="url(#p2-bg)"/>
+  
+  <!-- Browser Frame -->
+  <rect x="24" y="24" width="752" height="472" rx="12" fill="#ffffff" stroke="#e2d9cc" stroke-width="1.5"/>
+  <rect x="24" y="24" width="752" height="44" rx="12" fill="#fcf9f5" stroke="#ece4d8" stroke-width="1"/>
+  <circle cx="48" cy="46" r="6" fill="#cbd5e1"/>
+  <circle cx="68" cy="46" r="6" fill="#cbd5e1"/>
+  <circle cx="88" cy="46" r="6" fill="#cbd5e1"/>
+  <text x="120" y="50" font-family="Georgia, serif" font-size="12" letter-spacing="1" fill="#78716c">luminamaison.store/collection</text>
+  
+  <!-- Store Navigation -->
+  <rect x="24" y="68" width="752" height="50" fill="#ffffff" stroke="#f1ece4" stroke-width="1"/>
+  <text x="60" y="99" font-family="Georgia, serif" font-size="16" font-weight="bold" letter-spacing="2" fill="#292524">LUMINA MAISON</text>
+  <text x="440" y="98" font-family="system-ui, sans-serif" font-size="12" fill="#78716c">Objects</text>
+  <text x="510" y="98" font-family="system-ui, sans-serif" font-size="12" fill="#78716c">Lighting</text>
+  <text x="580" y="98" font-family="system-ui, sans-serif" font-size="12" fill="#78716c">Journal</text>
+  <rect x="660" y="82" width="80" height="28" rx="14" fill="#292524"/>
+  <text x="678" y="100" font-family="system-ui, sans-serif" font-size="11" fill="#ffffff">Cart (2)</text>
+
+  <!-- Hero Grid Showcase -->
+  <rect x="60" y="142" width="340" height="318" rx="8" fill="#f5f0eb"/>
+  <!-- Artistic Vase SVG -->
+  <circle cx="230" cy="280" r="60" fill="#e7ded5"/>
+  <path d="M 200 330 C 180 280, 210 220, 220 190 L 240 190 C 250 220, 280 280, 260 330 Z" fill="#b45309" opacity="0.85"/>
+  <rect x="80" y="380" width="160" height="14" rx="3" fill="#292524"/>
+  <rect x="80" y="405" width="80" height="10" rx="2" fill="#a8a29e"/>
+  <text x="80" y="435" font-family="system-ui, sans-serif" font-size="13" font-weight="bold" fill="#b45309">$280.00</text>
+
+  <!-- Right Cards -->
+  <rect x="424" y="142" width="316" height="148" rx="8" fill="#fbf8f5" stroke="#f0e9df" stroke-width="1"/>
+  <rect x="444" y="166" width="120" height="100" rx="6" fill="#ebe4dc"/>
+  <circle cx="504" cy="216" r="30" fill="#d97706" opacity="0.7"/>
+  <text x="580" y="195" font-family="Georgia, serif" font-size="16" fill="#292524">Brushed Brass Lamp</text>
+  <text x="580" y="220" font-family="system-ui, sans-serif" font-size="12" fill="#78716c">Handcrafted in Milan</text>
+  <text x="580" y="245" font-family="system-ui, sans-serif" font-size="14" font-weight="bold" fill="#292524">$420</text>
+
+  <rect x="424" y="306" width="316" height="154" rx="8" fill="#292524"/>
+  <text x="450" y="348" font-family="Georgia, serif" font-size="20" fill="#fef3c7">The Autumn Edit '26</text>
+  <text x="450" y="375" font-family="system-ui, sans-serif" font-size="12" fill="#d6d3d1">Curated architectural pieces for considered living spaces.</text>
+  <rect x="450" y="400" width="130" height="34" rx="4" fill="#ffffff"/>
+  <text x="474" y="422" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#292524">Explore Edit →</text>
+</svg>
