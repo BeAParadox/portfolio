@@ -10,7 +10,10 @@ import {
   ProcessStep, 
   Testimonial, 
   Inquiry,
-  AdminUser
+  AdminUser,
+  StatItem,
+  SocialLinks,
+  PillarItem
 } from './types';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -526,6 +529,40 @@ function seedIfEmpty(db: DatabaseSync) {
   }
 }
 
+// Helper utilities to guarantee safe JSON parsing and prevent double-stringification
+export function safeJsonParse<T>(val: unknown, fallback: T): T {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val !== 'string') return (val as T) ?? fallback;
+  try {
+    let parsed: unknown = JSON.parse(val);
+    while (typeof parsed === 'string') {
+      try {
+        parsed = JSON.parse(parsed);
+      } catch {
+        break;
+      }
+    }
+    return (parsed as T) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function serializeJson(val: unknown, fallback: string = '[]'): string {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return JSON.stringify(parsed);
+      }
+    } catch {
+      // not JSON object
+    }
+  }
+  return JSON.stringify(val);
+}
+
 // ------------------- CRUD API FUNCTIONS -------------------
 
 // 1. Full Database / Portfolio Query (Used by public site & admin)
@@ -548,10 +585,10 @@ export function getPortfolioDatabase(): PortfolioDatabase {
     intro: profileRow.intro,
     bio: profileRow.bio,
     avatarUrl: profileRow.avatarUrl,
-    stats: JSON.parse(profileRow.stats || '[]'),
-    socials: JSON.parse(profileRow.socials || '{}'),
-    skills: JSON.parse(profileRow.skills || '[]'),
-    pillars: JSON.parse(profileRow.pillars || '[]')
+    stats: safeJsonParse<StatItem[]>(profileRow.stats, []),
+    socials: safeJsonParse<SocialLinks>(profileRow.socials, {}),
+    skills: safeJsonParse<string[]>(profileRow.skills, []),
+    pillars: safeJsonParse<PillarItem[]>(profileRow.pillars, [])
   } : {
     name: '[Your Name]',
     role: 'Freelance Web Designer & Developer',
@@ -579,14 +616,14 @@ export function getPortfolioDatabase(): PortfolioDatabase {
     category: r.category as string,
     badge: (r.badge as string) || undefined,
     image: r.image as string,
-    tags: JSON.parse((r.tags as string) || '[]'),
+    tags: safeJsonParse<string[]>(r.tags, []),
     summary: r.summary as string,
     outcome: (r.outcome as string) || undefined,
     client: (r.client as string) || undefined,
     timeline: (r.timeline as string) || undefined,
     problem: (r.problem as string) || undefined,
     solution: (r.solution as string) || undefined,
-    results: r.results ? JSON.parse(r.results as string) : undefined,
+    results: r.results ? safeJsonParse<string[]>(r.results, []) : undefined,
     liveUrl: (r.liveUrl as string) || undefined,
     sort_order: r.sort_order as number
   }));
@@ -598,7 +635,7 @@ export function getPortfolioDatabase(): PortfolioDatabase {
     title: r.title as string,
     price: r.price as string,
     description: r.description as string,
-    deliverables: JSON.parse((r.deliverables as string) || '[]'),
+    deliverables: safeJsonParse<string[]>(r.deliverables, []),
     sort_order: r.sort_order as number
   }));
 
@@ -688,10 +725,10 @@ export function updateProfile(updates: Partial<Profile>): Profile {
     merged.intro,
     merged.bio,
     merged.avatarUrl,
-    JSON.stringify(merged.stats),
-    JSON.stringify(merged.socials),
-    JSON.stringify(merged.skills),
-    JSON.stringify(merged.pillars)
+    serializeJson(merged.stats, '[]'),
+    serializeJson(merged.socials, '{}'),
+    serializeJson(merged.skills, '[]'),
+    serializeJson(merged.pillars, '[]')
   );
 
   return merged;
@@ -714,14 +751,14 @@ export function createProject(project: Omit<Project, 'id'>): Project {
     project.category,
     project.badge || null,
     project.image || '/images/project-1.svg',
-    JSON.stringify(project.tags || []),
+    serializeJson(project.tags || [], '[]'),
     project.summary,
     project.outcome || null,
     project.client || null,
     project.timeline || null,
     project.problem || null,
     project.solution || null,
-    project.results ? JSON.stringify(project.results) : null,
+    project.results ? serializeJson(project.results, '[]') : null,
     project.liveUrl || null,
     project.sort_order || 0
   );
@@ -734,21 +771,21 @@ export function updateProject(id: string, updates: Partial<Project>): Project | 
   const existing = db.prepare('SELECT * FROM projects WHERE id = ?;').get(id) as Record<string, unknown>;
   if (!existing) return null;
 
-  const currentTags = JSON.parse((existing.tags as string) || '[]');
-  const currentResults = existing.results ? JSON.parse(existing.results as string) : null;
+  const currentTags = safeJsonParse<string[]>(existing.tags, []);
+  const currentResults = existing.results ? safeJsonParse<string[]>(existing.results, []) : null;
 
   const title = updates.title !== undefined ? updates.title : (existing.title as string);
   const category = updates.category !== undefined ? updates.category : (existing.category as string);
   const badge = updates.badge !== undefined ? updates.badge : (existing.badge as string);
   const image = updates.image !== undefined ? updates.image : (existing.image as string);
-  const tags = updates.tags !== undefined ? JSON.stringify(updates.tags) : JSON.stringify(currentTags);
+  const tags = updates.tags !== undefined ? serializeJson(updates.tags, '[]') : serializeJson(currentTags, '[]');
   const summary = updates.summary !== undefined ? updates.summary : (existing.summary as string);
   const outcome = updates.outcome !== undefined ? updates.outcome : (existing.outcome as string);
   const client = updates.client !== undefined ? updates.client : (existing.client as string);
   const timeline = updates.timeline !== undefined ? updates.timeline : (existing.timeline as string);
   const problem = updates.problem !== undefined ? updates.problem : (existing.problem as string);
   const solution = updates.solution !== undefined ? updates.solution : (existing.solution as string);
-  const results = updates.results !== undefined ? JSON.stringify(updates.results) : (currentResults ? JSON.stringify(currentResults) : null);
+  const results = updates.results !== undefined ? serializeJson(updates.results, '[]') : (currentResults ? serializeJson(currentResults, '[]') : null);
   const liveUrl = updates.liveUrl !== undefined ? updates.liveUrl : (existing.liveUrl as string);
 
   const stmt = db.prepare(`
@@ -766,14 +803,14 @@ export function updateProject(id: string, updates: Partial<Project>): Project | 
     category,
     badge: badge || undefined,
     image,
-    tags: JSON.parse(tags),
+    tags: safeJsonParse<string[]>(tags, []),
     summary,
     outcome: outcome || undefined,
     client: client || undefined,
     timeline: timeline || undefined,
     problem: problem || undefined,
     solution: solution || undefined,
-    results: results ? JSON.parse(results) : undefined,
+    results: results ? safeJsonParse<string[]>(results, []) : undefined,
     liveUrl: liveUrl || undefined
   };
 }
@@ -795,7 +832,7 @@ export function updateServices(services: Service[]): Service[] {
 
   services.forEach((s, idx) => {
     const id = s.id || `serv-${idx + 1}`;
-    stmt.run(id, s.title, s.price, s.description, JSON.stringify(s.deliverables || []), idx + 1);
+    stmt.run(id, s.title, s.price, s.description, serializeJson(s.deliverables || [], '[]'), idx + 1);
   });
 
   return services;

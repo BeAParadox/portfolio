@@ -57,7 +57,7 @@ export default function Services({ services }: ServicesProps) {
               </p>
 
               <div className="mt-auto pt-6 border-t border-surface-border flex flex-col gap-2.5 mb-6">
-                {service.deliverables.map((item, dIdx) => (
+                {(Array.isArray(service.deliverables) ? service.deliverables : []).map((item, dIdx) => (
                   <div key={dIdx} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-300">
                     <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                     <span>{item}</span>

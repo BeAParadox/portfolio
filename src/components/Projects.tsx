@@ -85,7 +85,7 @@ export default function Projects({ projects }: ProjectsProps) {
               <div className="p-7 flex flex-col flex-grow">
                 {/* Tech Tags */}
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {(project.tags || []).map((tag, tIdx) => (
+                  {(Array.isArray(project.tags) ? project.tags : []).map((tag, tIdx) => (
                     <span
                       key={tIdx}
                       className="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
@@ -200,7 +200,7 @@ export default function Projects({ projects }: ProjectsProps) {
             )}
 
             {/* Key Business Results */}
-            {selectedProject.results && selectedProject.results.length > 0 && (
+            {Array.isArray(selectedProject.results) && selectedProject.results.length > 0 && (
               <div className="p-6 rounded-2xl bg-slate-900/60 border border-surface-border mb-8">
                 <h4 className="font-bold text-sm text-foreground mb-3 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />

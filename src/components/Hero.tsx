@@ -7,6 +7,15 @@ interface HeroProps {
 }
 
 export default function Hero({ profile }: HeroProps) {
+  const stats = Array.isArray(profile.stats) && profile.stats.length > 0
+    ? profile.stats
+    : [
+        { value: "5+", label: "Years of Experience" },
+        { value: "40+", label: "Websites Delivered" },
+        { value: "99.8%", label: "Client Satisfaction" },
+        { value: "100%", label: "On-Time Delivery" }
+      ];
+
   return (
     <section id="hero" className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden">
       {/* Background Ambient Glow */}
@@ -83,12 +92,7 @@ export default function Hero({ profile }: HeroProps) {
 
         {/* Social Proof Stats Card */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-6 sm:p-8 rounded-2xl bg-surface/80 border border-surface-border shadow-xl backdrop-blur-md">
-          {(profile.stats && profile.stats.length > 0 ? profile.stats : [
-            { value: "5+", label: "Years of Experience" },
-            { value: "40+", label: "Websites Delivered" },
-            { value: "99.8%", label: "Client Satisfaction" },
-            { value: "100%", label: "On-Time Delivery" }
-          ]).map((stat, idx) => (
+          {stats.map((stat, idx) => (
             <div key={idx} className="text-center">
               <div className="font-display font-black text-3xl sm:text-4xl text-foreground mb-1">
                 {stat.value}

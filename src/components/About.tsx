@@ -8,14 +8,14 @@ interface AboutProps {
 }
 
 export default function About({ profile }: AboutProps) {
-  const pillars = profile.pillars && profile.pillars.length > 0 ? profile.pillars : [
+  const pillars = Array.isArray(profile.pillars) && profile.pillars.length > 0 ? profile.pillars : [
     { title: 'User-Centric Intent', desc: 'Layout, hierarchy, and micro-interactions planned around conversion.' },
     { title: 'Speed as a Feature', desc: 'Blazing-fast load times, 95+ Core Web Vitals, zero bloat.' },
     { title: 'Radical Reliability', desc: 'Fixed milestones, weekly Loom updates, no surprise costs.' },
     { title: 'Inclusive & Accessible', desc: 'Engineered according to WCAG 2.1 AA accessibility guidelines.' }
   ];
 
-  const skills = profile.skills && profile.skills.length > 0 ? profile.skills : [
+  const skills = Array.isArray(profile.skills) && profile.skills.length > 0 ? profile.skills : [
     'Next.js 14', 'React', 'TypeScript', 'Tailwind CSS', 'Figma', 'Node.js',
     'REST & GraphQL APIs', 'Shopify Liquid', 'WordPress / CMS', 'SEO Optimization', 'Git / GitHub', 'WCAG 2.1 AA'
   ];
