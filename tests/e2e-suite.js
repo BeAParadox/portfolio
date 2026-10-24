@@ -273,6 +273,10 @@ function killProcessTree(pid) {
     assert(unauthAdmin.status === 307 || unauthAdmin.status === 308, 'GET /admin without token redirects (307/308)');
     assert(unauthAdmin.headers.location?.includes('/login'), 'Redirect target includes /login');
 
+    const unauthSub = await request('GET', '/admin/subpage');
+    assert(unauthSub.status === 307 || unauthSub.status === 308, 'GET /admin/subpage without token redirects (307/308)');
+    assert(unauthSub.headers.location?.includes('/login'), 'Redirect target includes /login');
+
     // 2. Bad credentials login
     const badLogin = await request('POST', '/api/auth/login', {
       username: 'admin',
