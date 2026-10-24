@@ -9,6 +9,7 @@ export async function GET() {
       profile: db.profile,
       projects: db.projects,
       services: db.services,
+      processSteps: db.processSteps,
       testimonials: db.testimonials
     });
   } catch (error) {

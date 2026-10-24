@@ -23,7 +23,7 @@ export default function HomePage() {
         <Services services={db.services} />
         <Projects projects={db.projects} />
         <About profile={db.profile} />
-        <Process />
+        <Process processSteps={db.processSteps} />
         <Testimonials testimonials={db.testimonials} />
         <Contact profile={db.profile} />
       </main>

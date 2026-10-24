@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
+import { verifyAdminCredentials } from './db';
 
 const SECRET_KEY = new TextEncoder().encode(
   process.env.SESSION_SECRET || 'portfolio-nextjs-super-secret-jwt-key-2026-secure'
@@ -7,8 +8,8 @@ const SECRET_KEY = new TextEncoder().encode(
 
 const COOKIE_NAME = 'admin_session_token';
 
-export async function createSessionToken(): Promise<string> {
-  return await new SignJWT({ role: 'admin' })
+export async function createSessionToken(username: string = 'admin'): Promise<string> {
+  return await new SignJWT({ role: 'admin', username })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
@@ -35,9 +36,9 @@ export async function isAuthenticated(): Promise<boolean> {
   }
 }
 
-export function checkPassword(providedPassword: string): boolean {
-  const masterPassword = process.env.ADMIN_PASSWORD || 'admin123';
-  return providedPassword === masterPassword;
+export function checkPassword(providedPassword: string, username?: string): boolean {
+  const result = verifyAdminCredentials(providedPassword, username);
+  return result.success;
 }
 
 export { COOKIE_NAME };

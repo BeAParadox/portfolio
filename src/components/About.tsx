@@ -8,6 +8,18 @@ interface AboutProps {
 }
 
 export default function About({ profile }: AboutProps) {
+  const pillars = profile.pillars && profile.pillars.length > 0 ? profile.pillars : [
+    { title: 'User-Centric Intent', desc: 'Layout, hierarchy, and micro-interactions planned around conversion.' },
+    { title: 'Speed as a Feature', desc: 'Blazing-fast load times, 95+ Core Web Vitals, zero bloat.' },
+    { title: 'Radical Reliability', desc: 'Fixed milestones, weekly Loom updates, no surprise costs.' },
+    { title: 'Inclusive & Accessible', desc: 'Engineered according to WCAG 2.1 AA accessibility guidelines.' }
+  ];
+
+  const skills = profile.skills && profile.skills.length > 0 ? profile.skills : [
+    'Next.js 14', 'React', 'TypeScript', 'Tailwind CSS', 'Figma', 'Node.js',
+    'REST & GraphQL APIs', 'Shopify Liquid', 'WordPress / CMS', 'SEO Optimization', 'Git / GitHub', 'WCAG 2.1 AA'
+  ];
+
   return (
     <section id="about" className="py-24 relative">
       <div className="max-w-7xl mx-auto px-6">
@@ -19,8 +31,8 @@ export default function About({ profile }: AboutProps) {
             <div className="p-8 rounded-3xl bg-surface border border-surface-border text-center shadow-xl relative">
               <div className="relative w-44 h-44 mx-auto mb-6">
                 <Image
-                  src="/images/avatar.svg"
-                  alt={`Portrait of ${profile.name}`}
+                  src={profile.avatarUrl || '/images/avatar.svg'}
+                  alt={`Portrait of ${profile.name || 'Developer'}`}
                   fill
                   className="rounded-full object-cover border-4 border-slate-800 shadow-xl shadow-indigo-500/20"
                 />
@@ -83,53 +95,38 @@ export default function About({ profile }: AboutProps) {
               Bridging the Gap Between Design &amp; Full-Stack Code
             </h2>
 
-            <p className="text-base text-slate-300 leading-relaxed mb-4">
-              I am a multidisciplinary web creator with over <strong>{profile.experience || '5+ years'}</strong> of experience turning complex brand requirements into bespoke, user-centric web applications.
-            </p>
-            <p className="text-base text-slate-300 leading-relaxed mb-8">
-              Most clients struggle with a dilemma: designers who build pretty wireframes that are impossible to build, or developers who write functional code that looks neglected. <strong>I bring both disciplines under one roof.</strong> That means cohesive aesthetics, pixel-perfect execution, and clean Next.js code that loads in under 1 second.
-            </p>
-
-            {/* 4 Pillars Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-              <div className="p-4 rounded-xl bg-surface border border-surface-border">
-                <h4 className="font-bold text-sm text-foreground mb-1">User-Centric Intent</h4>
-                <p className="text-xs text-slate-400">Layout, hierarchy, and micro-interactions planned around conversion.</p>
-              </div>
-              <div className="p-4 rounded-xl bg-surface border border-surface-border">
-                <h4 className="font-bold text-sm text-foreground mb-1">Speed as a Feature</h4>
-                <p className="text-xs text-slate-400">Blazing-fast load times, 95+ Core Web Vitals, zero bloat.</p>
-              </div>
-              <div className="p-4 rounded-xl bg-surface border border-surface-border">
-                <h4 className="font-bold text-sm text-foreground mb-1">Radical Reliability</h4>
-                <p className="text-xs text-slate-400">Fixed milestones, weekly Loom updates, no surprise costs.</p>
-              </div>
-              <div className="p-4 rounded-xl bg-surface border border-surface-border">
-                <h4 className="font-bold text-sm text-foreground mb-1">Inclusive &amp; Accessible</h4>
-                <p className="text-xs text-slate-400">Engineered according to WCAG 2.1 AA accessibility guidelines.</p>
-              </div>
+            <div className="space-y-4 text-base text-slate-300 leading-relaxed mb-8">
+              {profile.bio ? (
+                <p>{profile.bio}</p>
+              ) : (
+                <>
+                  <p>
+                    I am a multidisciplinary web creator with over <strong>{profile.experience || '5+ years'}</strong> of experience turning complex brand requirements into bespoke, user-centric web applications.
+                  </p>
+                  <p>
+                    Most clients struggle with a dilemma: designers who build pretty wireframes that are impossible to build, or developers who write functional code that looks neglected. <strong>I bring both disciplines under one roof.</strong> That means cohesive aesthetics, pixel-perfect execution, and clean Next.js code that loads in under 1 second.
+                  </p>
+                </>
+              )}
             </div>
 
-            {/* Tech Stack Pills */}
+            {/* Dynamic Core Pillars Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              {pillars.map((pillar, idx) => (
+                <div key={idx} className="p-4 rounded-xl bg-surface border border-surface-border">
+                  <h4 className="font-bold text-sm text-foreground mb-1">{pillar.title}</h4>
+                  <p className="text-xs text-slate-400">{pillar.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Dynamic Tech Stack Pills */}
             <div className="mb-8">
               <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
                 Core Toolstack
               </div>
               <div className="flex flex-wrap gap-2">
-                {[
-                  'Next.js 14',
-                  'React',
-                  'TypeScript',
-                  'Tailwind CSS',
-                  'Figma',
-                  'Node.js',
-                  'REST & GraphQL APIs',
-                  'Shopify Liquid',
-                  'WordPress / CMS',
-                  'SEO Optimization',
-                  'Git / GitHub',
-                  'WCAG 2.1 AA',
-                ].map((tech, idx) => (
+                {skills.map((tech, idx) => (
                   <span
                     key={idx}
                     className="px-3 py-1 rounded-md text-xs font-mono font-medium bg-slate-800/80 text-slate-200 border border-slate-700/60"

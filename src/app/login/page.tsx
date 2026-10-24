@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { Lock, ArrowRight, Loader2, AlertCircle, User, ArrowLeft } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +23,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ username, password })
       });
 
       const data = await res.json();
@@ -53,7 +54,7 @@ export default function LoginPage() {
           Studio Admin Access
         </h1>
         <p className="text-xs sm:text-sm text-slate-400 mb-8 leading-relaxed">
-          Enter your master password to unlock the Next.js CMS dashboard and manage your portfolio.
+          Database-authenticated portal. Enter your credentials stored securely in SQLite.
         </p>
 
         {error && (
@@ -66,17 +67,37 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="flex flex-col gap-4 text-left">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-              Master Password
+              Admin Username
             </label>
-            <input
-              type="password"
-              required
-              autoFocus
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••••"
-              className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-            />
+            <div className="relative">
+              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="admin"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="password"
+                required
+                autoFocus
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
           </div>
 
           <button
@@ -87,7 +108,7 @@ export default function LoginPage() {
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Verifying...</span>
+                <span>Verifying credentials...</span>
               </>
             ) : (
               <>
@@ -99,8 +120,12 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-8 pt-6 border-t border-surface-border">
-          <Link href="/" className="text-xs font-medium text-slate-400 hover:text-foreground transition-colors">
-            ← Return to Public Portfolio
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Public Portfolio</span>
           </Link>
         </div>
 

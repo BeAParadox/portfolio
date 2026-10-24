@@ -19,9 +19,13 @@ import {
   X, 
   CheckCircle2, 
   Search, 
-  Mail
+  Mail,
+  Workflow,
+  Lock,
+  KeyRound,
+  AlertCircle
 } from 'lucide-react';
-import { PortfolioDatabase, Project, Testimonial } from '@/lib/types';
+import { PortfolioDatabase, Project, Testimonial, ProcessStep, PillarItem, StatItem } from '@/lib/types';
 
 interface AdminDashboardProps {
   initialData: PortfolioDatabase;
@@ -30,7 +34,7 @@ interface AdminDashboardProps {
 export default function AdminDashboard({ initialData }: AdminDashboardProps) {
   const router = useRouter();
   const [data, setData] = useState<PortfolioDatabase>(initialData);
-  const [activeTab, setActiveTab] = useState<'projects' | 'profile' | 'services' | 'testimonials' | 'inquiries'>('projects');
+  const [activeTab, setActiveTab] = useState<'projects' | 'profile' | 'services' | 'process' | 'testimonials' | 'inquiries' | 'security'>('projects');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Search & Filter for Projects
@@ -44,9 +48,19 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
   const [isTestimonialModalOpen, setIsTestimonialModalOpen] = useState(false);
   const [editingTestimonial, setEditingTestimonial] = useState<Partial<Testimonial> | null>(null);
 
+  // Security / Password update state
+  const [securityForm, setSecurityForm] = useState({
+    username: data.adminUser?.username || 'admin',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [securityError, setSecurityError] = useState<string | null>(null);
+  const [securityLoading, setSecurityLoading] = useState(false);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
   const handleLogout = async () => {
@@ -114,7 +128,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
         body: JSON.stringify(data.profile)
       });
       if (res.ok) {
-        showToast('Profile and hero settings updated!');
+        showToast('Profile, Hero, and Tech Stack updated in SQLite!');
       }
     } catch {
       showToast('Error updating profile');
@@ -131,11 +145,53 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
         body: JSON.stringify(data.services)
       });
       if (res.ok) {
-        showToast('Services and pricing updated!');
+        showToast('Services and pricing packages updated in SQLite!');
       }
     } catch {
       showToast('Error updating services');
     }
+  };
+
+  // ---------------- PROCESS UPDATE ----------------
+  const handleSaveProcess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/admin/process', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data.processSteps)
+      });
+      if (res.ok) {
+        showToast('Process workflow steps updated in SQLite!');
+      }
+    } catch {
+      showToast('Error updating process steps');
+    }
+  };
+
+  const handleAddProcessStep = () => {
+    const nextNum = (data.processSteps?.length || 0) + 1;
+    const formattedNum = nextNum < 10 ? `0${nextNum}` : `${nextNum}`;
+    const newStep: ProcessStep = {
+      id: `step-${Date.now()}`,
+      stepNumber: formattedNum,
+      badge: `Phase ${nextNum}`,
+      title: 'New Milestone',
+      description: 'Describe this phase of the engagement.',
+      deliverables: 'Key deliverables for this step.',
+      sort_order: nextNum
+    };
+    setData({
+      ...data,
+      processSteps: [...(data.processSteps || []), newStep]
+    });
+  };
+
+  const handleDeleteProcessStep = (id: string) => {
+    setData({
+      ...data,
+      processSteps: data.processSteps.filter(s => s.id !== id)
+    });
   };
 
   // ---------------- TESTIMONIAL CRUD ----------------
@@ -200,6 +256,67 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
     }
   };
 
+  // ---------------- SECURITY / PASSWORD UPDATE ----------------
+  const handleSaveSecurity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSecurityError(null);
+
+    if (!securityForm.currentPassword) {
+      setSecurityError('Please enter your current password to authorize changes.');
+      return;
+    }
+
+    if (securityForm.newPassword) {
+      if (securityForm.newPassword.length < 6) {
+        setSecurityError('New password must be at least 6 characters long.');
+        return;
+      }
+      if (securityForm.newPassword !== securityForm.confirmPassword) {
+        setSecurityError('New password and confirmation do not match.');
+        return;
+      }
+    }
+
+    setSecurityLoading(true);
+    try {
+      const res = await fetch('/api/admin/security', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: securityForm.currentPassword,
+          newPassword: securityForm.newPassword || undefined,
+          newUsername: securityForm.username !== data.adminUser?.username ? securityForm.username : undefined
+        })
+      });
+
+      const result = await res.json();
+      if (res.ok && result.success) {
+        showToast('Admin password & credentials updated successfully in SQLite database!');
+        setSecurityForm({
+          username: securityForm.username,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        if (data.adminUser) {
+          setData({
+            ...data,
+            adminUser: {
+              ...data.adminUser,
+              username: securityForm.username
+            }
+          });
+        }
+      } else {
+        setSecurityError(result.error || 'Failed to update credentials.');
+      }
+    } catch {
+      setSecurityError('Network error while saving credentials.');
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
+
   // Filtered projects
   const filteredProjects = data.projects.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(projectSearch.toLowerCase()) ||
@@ -228,7 +345,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
           </div>
           <div>
             <h1 className="font-display font-bold text-base">Studio CMS</h1>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Next.js Admin</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Next.js + SQLite DB</span>
           </div>
         </div>
 
@@ -255,7 +372,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
             }`}
           >
             <User className="w-4 h-4" />
-            <span>Profile &amp; Hero</span>
+            <span>Profile &amp; Stack</span>
           </button>
 
           <button
@@ -266,6 +383,21 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
           >
             <Briefcase className="w-4 h-4" />
             <span>Services &amp; Pricing</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('process')}
+            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+              activeTab === 'process' ? 'bg-indigo-500/15 text-indigo-400' : 'text-slate-400 hover:bg-surface-hover hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Workflow className="w-4 h-4" />
+              <span>Process Steps</span>
+            </div>
+            <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-300 font-bold">
+              {data.processSteps?.length || 0}
+            </span>
           </button>
 
           <button
@@ -291,6 +423,16 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
             <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/20 text-indigo-400 font-bold">
               {data.inquiries?.length || 0}
             </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('security')}
+            className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+              activeTab === 'security' ? 'bg-indigo-500/15 text-indigo-400' : 'text-slate-400 hover:bg-surface-hover hover:text-white'
+            }`}
+          >
+            <KeyRound className="w-4 h-4" />
+            <span>Admin Password</span>
           </button>
         </nav>
 
@@ -319,15 +461,16 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
         {/* TAB 1: PROJECTS */}
         {activeTab === 'projects' && (
           <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
               <div>
                 <h2 className="font-display font-extrabold text-2xl text-foreground mb-1">
-                  Project Portfolio Manager
+                  Portfolio Projects ({filteredProjects.length})
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-400">
-                  Add, edit, or delete projects. Changes sync immediately to your live portfolio.
+                  Manage your showcase works, case studies, outcomes, and screenshots.
                 </p>
               </div>
+
               <button
                 onClick={() => {
                   setEditingProject({
@@ -335,37 +478,35 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
                     category: 'web-design',
                     badge: '',
                     image: '/images/project-1.svg',
-                    tags: ['Next.js', 'React', 'Tailwind'],
+                    tags: ['Design', 'Development'],
                     summary: '',
-                    outcome: 'Result: +35% conversion',
-                    client: '',
-                    timeline: '5 Weeks',
+                    outcome: '',
+                    results: [],
                     problem: '',
                     solution: '',
-                    results: ['Sub-1s page load times', '100% WCAG AA compliant'],
                     liveUrl: ''
                   });
                   setIsProjectModalOpen(true);
                 }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold gradient-bg text-white shadow-md shadow-indigo-500/25"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold gradient-bg text-white shadow-md shadow-indigo-500/25 hover:shadow-indigo-500/40"
               >
                 <Plus className="w-4 h-4" />
-                <span>Add New Project</span>
+                <span>Add Project</span>
               </button>
             </div>
 
-            {/* Filter & Search Bar */}
-            <div className="flex flex-wrap items-center gap-3 mb-8">
-              <div className="relative flex-grow max-w-sm">
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="relative flex-grow">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search projects..."
+                  placeholder="Search projects by title, summary, or tags..."
                   value={projectSearch}
                   onChange={(e) => setProjectSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface border border-surface-border text-xs sm:text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface border border-surface-border text-xs sm:text-sm text-foreground placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
+
               <select
                 value={projectFilter}
                 onChange={(e) => setProjectFilter(e.target.value)}
@@ -379,50 +520,55 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
               </select>
             </div>
 
-            {/* Projects Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProjects.map((proj) => (
+            <div className="flex flex-col gap-3">
+              {filteredProjects.map((project) => (
                 <div
-                  key={proj.id}
-                  className="p-5 rounded-2xl bg-surface border border-surface-border flex flex-col justify-between"
+                  key={project.id}
+                  className="p-4 sm:p-5 rounded-2xl bg-surface border border-surface-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-surface-hover transition-colors"
                 >
-                  <div>
-                    <div className="relative aspect-[16/10] rounded-xl overflow-hidden mb-4 bg-slate-950">
-                      <Image src={proj.image || '/images/project-1.svg'} alt={proj.title} fill className="object-cover" />
-                      {proj.badge && (
-                        <span className="absolute top-2 right-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-900/80 text-white">
-                          {proj.badge}
-                        </span>
-                      )}
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-16 h-12 rounded-lg bg-slate-900 border border-slate-800 overflow-hidden shrink-0">
+                      <Image
+                        src={project.image || '/images/project-1.svg'}
+                        alt={project.title}
+                        fill
+                        className="object-cover"
+                      />
                     </div>
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {(proj.tags || []).map((t, idx) => (
-                        <span key={idx} className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/10 text-indigo-400">
-                          {t}
-                        </span>
-                      ))}
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-sm sm:text-base text-foreground">
+                          {project.title}
+                        </h3>
+                        {project.badge && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                            {project.badge}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 line-clamp-1 max-w-xl">
+                        {project.summary}
+                      </p>
                     </div>
-                    <h3 className="font-bold text-base text-foreground mb-1 leading-snug">{proj.title}</h3>
-                    <p className="text-xs text-slate-400 line-clamp-2 mb-4">{proj.summary}</p>
                   </div>
 
-                  <div className="pt-3 border-t border-surface-border flex items-center justify-between">
+                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                     <button
                       onClick={() => {
-                        setEditingProject(proj);
+                        setEditingProject(project);
                         setIsProjectModalOpen(true);
                       }}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-indigo-400 hover:text-indigo-300"
+                      className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                      title="Edit project"
                     >
                       <Pencil className="w-3.5 h-3.5" />
-                      <span>Edit</span>
                     </button>
                     <button
-                      onClick={() => handleDeleteProject(proj.id, proj.title)}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-red-400 hover:text-red-300"
+                      onClick={() => handleDeleteProject(project.id, project.title)}
+                      className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
+                      title="Delete project"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Delete</span>
                     </button>
                   </div>
                 </div>
@@ -431,95 +577,253 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
           </div>
         )}
 
-        {/* TAB 2: PROFILE & HERO SETTINGS */}
+        {/* TAB 2: PROFILE & STACK */}
         {activeTab === 'profile' && (
-          <div className="max-w-3xl">
+          <div className="max-w-4xl">
             <h2 className="font-display font-extrabold text-2xl text-foreground mb-1">
-              Personal Brand &amp; Hero Settings
+              Profile, Hero &amp; Tech Stack
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 mb-8">
-              Update your name, title, bio, email, availability badge, and social links.
+              Update your personal details, availability, hero copy, live stats, tech stack pills, and core principles.
             </p>
 
-            <form onSubmit={handleSaveProfile} className="flex flex-col gap-6 p-8 rounded-3xl bg-surface border border-surface-border shadow-xl">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <form onSubmit={handleSaveProfile} className="space-y-8">
+              <div className="p-6 rounded-2xl bg-surface border border-surface-border space-y-4">
+                <h3 className="font-bold text-sm text-indigo-400 uppercase tracking-wider">Basic Identity</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Display Name</label>
+                    <input
+                      type="text"
+                      value={data.profile.name}
+                      onChange={(e) => setData({ ...data, profile: { ...data.profile, name: e.target.value } })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Professional Role</label>
+                    <input
+                      type="text"
+                      value={data.profile.role}
+                      onChange={(e) => setData({ ...data, profile: { ...data.profile, role: e.target.value } })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Location &amp; Remote Status</label>
+                    <input
+                      type="text"
+                      value={data.profile.location}
+                      onChange={(e) => setData({ ...data, profile: { ...data.profile, location: e.target.value } })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Direct Email</label>
+                    <input
+                      type="email"
+                      value={data.profile.email}
+                      onChange={(e) => setData({ ...data, profile: { ...data.profile, email: e.target.value } })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Experience</label>
+                    <input
+                      type="text"
+                      value={data.profile.experience || ''}
+                      onChange={(e) => setData({ ...data, profile: { ...data.profile, experience: e.target.value } })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Timezone</label>
+                    <input
+                      type="text"
+                      value={data.profile.timezone || ''}
+                      onChange={(e) => setData({ ...data, profile: { ...data.profile, timezone: e.target.value } })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Full Name</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Availability Status Badge</label>
                   <input
                     type="text"
-                    value={data.profile.name}
-                    onChange={(e) => setData({ ...data, profile: { ...data.profile, name: e.target.value } })}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                    value={data.profile.availability}
+                    onChange={(e) => setData({ ...data, profile: { ...data.profile, availability: e.target.value } })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
                   />
                 </div>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-surface border border-surface-border space-y-4">
+                <h3 className="font-bold text-sm text-indigo-400 uppercase tracking-wider">Hero &amp; Bio Copy</h3>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Role Title</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Hero Headline</label>
                   <input
                     type="text"
-                    value={data.profile.role}
-                    onChange={(e) => setData({ ...data, profile: { ...data.profile, role: e.target.value } })}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                    value={data.profile.headline}
+                    onChange={(e) => setData({ ...data, profile: { ...data.profile, headline: e.target.value } })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Location</label>
-                  <input
-                    type="text"
-                    value={data.profile.location}
-                    onChange={(e) => setData({ ...data, profile: { ...data.profile, location: e.target.value } })}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Hero Introduction Text</label>
+                  <textarea
+                    rows={2}
+                    value={data.profile.intro}
+                    onChange={(e) => setData({ ...data, profile: { ...data.profile, intro: e.target.value } })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Direct Email</label>
-                  <input
-                    type="email"
-                    value={data.profile.email}
-                    onChange={(e) => setData({ ...data, profile: { ...data.profile, email: e.target.value } })}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">About Section Full Bio</label>
+                  <textarea
+                    rows={3}
+                    value={data.profile.bio || ''}
+                    onChange={(e) => setData({ ...data, profile: { ...data.profile, bio: e.target.value } })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Availability Status Badge</label>
-                <input
-                  type="text"
-                  value={data.profile.availability}
-                  onChange={(e) => setData({ ...data, profile: { ...data.profile, availability: e.target.value } })}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
-                />
+              <div className="p-6 rounded-2xl bg-surface border border-surface-border space-y-4">
+                <h3 className="font-bold text-sm text-indigo-400 uppercase tracking-wider">Hero Counter Stats</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {(data.profile.stats || []).map((stat, idx) => (
+                    <div key={idx} className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-800 space-y-2">
+                      <div className="flex gap-2">
+                        <div className="w-1/3">
+                          <label className="block text-[10px] font-bold text-slate-400 mb-1">Value</label>
+                          <input
+                            type="text"
+                            value={stat.value}
+                            onChange={(e) => {
+                              const newStats = [...data.profile.stats];
+                              newStats[idx].value = e.target.value;
+                              setData({ ...data, profile: { ...data.profile, stats: newStats } });
+                            }}
+                            className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold"
+                          />
+                        </div>
+                        <div className="w-2/3">
+                          <label className="block text-[10px] font-bold text-slate-400 mb-1">Label</label>
+                          <input
+                            type="text"
+                            value={stat.label}
+                            onChange={(e) => {
+                              const newStats = [...data.profile.stats];
+                              newStats[idx].label = e.target.value;
+                              setData({ ...data, profile: { ...data.profile, stats: newStats } });
+                            }}
+                            className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Hero Headline</label>
-                <input
-                  type="text"
-                  value={data.profile.headline}
-                  onChange={(e) => setData({ ...data, profile: { ...data.profile, headline: e.target.value } })}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Hero Introduction Bio</label>
+              <div className="p-6 rounded-2xl bg-surface border border-surface-border space-y-4">
+                <h3 className="font-bold text-sm text-indigo-400 uppercase tracking-wider">Core Toolstack &amp; Skills</h3>
+                <p className="text-xs text-slate-400">Comma-separated list of frameworks, languages, and tools to display as pills.</p>
                 <textarea
-                  rows={3}
-                  value={data.profile.intro}
-                  onChange={(e) => setData({ ...data, profile: { ...data.profile, intro: e.target.value } })}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                  rows={2}
+                  value={(data.profile.skills || []).join(', ')}
+                  onChange={(e) => {
+                    const skills = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                    setData({ ...data, profile: { ...data.profile, skills } });
+                  }}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-xs font-mono text-foreground focus:outline-none focus:border-indigo-500"
+                  placeholder="Next.js, React, TypeScript, Tailwind CSS, Figma, Node.js"
                 />
+              </div>
+
+              <div className="p-6 rounded-2xl bg-surface border border-surface-border space-y-4">
+                <h3 className="font-bold text-sm text-indigo-400 uppercase tracking-wider">About Me Core Pillars</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {(data.profile.pillars || []).map((pillar, idx) => (
+                    <div key={idx} className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-800 space-y-2">
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">Pillar {idx + 1} Title</label>
+                      <input
+                        type="text"
+                        value={pillar.title}
+                        onChange={(e) => {
+                          const newPillars = [...data.profile.pillars];
+                          newPillars[idx].title = e.target.value;
+                          setData({ ...data, profile: { ...data.profile, pillars: newPillars } });
+                        }}
+                        className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold"
+                      />
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">Description</label>
+                      <textarea
+                        rows={2}
+                        value={pillar.desc}
+                        onChange={(e) => {
+                          const newPillars = [...data.profile.pillars];
+                          newPillars[idx].desc = e.target.value;
+                          setData({ ...data, profile: { ...data.profile, pillars: newPillars } });
+                        }}
+                        className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-surface border border-surface-border space-y-4">
+                <h3 className="font-bold text-sm text-indigo-400 uppercase tracking-wider">Social Links</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">GitHub URL</label>
+                    <input
+                      type="url"
+                      value={data.profile.socials?.github || ''}
+                      onChange={(e) => setData({ ...data, profile: { ...data.profile, socials: { ...data.profile.socials, github: e.target.value } } })}
+                      className="w-full px-4 py-2 rounded-xl bg-slate-900/60 border border-slate-700 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">LinkedIn URL</label>
+                    <input
+                      type="url"
+                      value={data.profile.socials?.linkedin || ''}
+                      onChange={(e) => setData({ ...data, profile: { ...data.profile, socials: { ...data.profile.socials, linkedin: e.target.value } } })}
+                      className="w-full px-4 py-2 rounded-xl bg-slate-900/60 border border-slate-700 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Twitter / X URL</label>
+                    <input
+                      type="url"
+                      value={data.profile.socials?.twitter || ''}
+                      onChange={(e) => setData({ ...data, profile: { ...data.profile, socials: { ...data.profile.socials, twitter: e.target.value } } })}
+                      className="w-full px-4 py-2 rounded-xl bg-slate-900/60 border border-slate-700 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Dribbble URL</label>
+                    <input
+                      type="url"
+                      value={data.profile.socials?.dribbble || ''}
+                      onChange={(e) => setData({ ...data, profile: { ...data.profile, socials: { ...data.profile.socials, dribbble: e.target.value } } })}
+                      className="w-full px-4 py-2 rounded-xl bg-slate-900/60 border border-slate-700 text-xs"
+                    />
+                  </div>
+                </div>
               </div>
 
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-sm font-bold gradient-bg text-white shadow-md shadow-indigo-500/20"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-sm font-bold gradient-bg text-white shadow-md shadow-indigo-500/20"
               >
                 <Save className="w-4 h-4" />
-                <span>Save Profile Changes</span>
+                <span>Save All Profile Changes to Database</span>
               </button>
             </form>
           </div>
@@ -599,16 +903,142 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-sm font-bold gradient-bg text-white shadow-md shadow-indigo-500/20"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-sm font-bold gradient-bg text-white shadow-md shadow-indigo-500/20"
               >
                 <Save className="w-4 h-4" />
-                <span>Save All Services</span>
+                <span>Save All Services to Database</span>
               </button>
             </form>
           </div>
         )}
 
-        {/* TAB 4: TESTIMONIALS */}
+        {/* TAB 4: PROCESS STEPS */}
+        {activeTab === 'process' && (
+          <div className="max-w-4xl">
+            <div className="flex items-center justify-between gap-4 mb-8">
+              <div>
+                <h2 className="font-display font-extrabold text-2xl text-foreground mb-1">
+                  How It Works — Process Steps ({data.processSteps?.length || 0})
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400">
+                  Configure the sequential workflow milestones, timeline badges, and phase deliverables.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddProcessStep}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold gradient-bg text-white shadow-md shadow-indigo-500/25"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Step</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProcess} className="flex flex-col gap-6">
+              {(data.processSteps || []).map((step, idx) => (
+                <div key={step.id || idx} className="p-6 rounded-2xl bg-surface border border-surface-border relative">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-md border border-indigo-500/20">
+                      Step #{idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteProcessStep(step.id)}
+                      className="text-xs font-bold text-red-400 hover:text-red-300"
+                    >
+                      Delete Step
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Number Display</label>
+                      <input
+                        type="text"
+                        value={step.stepNumber}
+                        onChange={(e) => {
+                          const updated = [...data.processSteps];
+                          updated[idx].stepNumber = e.target.value;
+                          setData({ ...data, processSteps: updated });
+                        }}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900/60 border border-slate-700 text-sm font-mono"
+                        placeholder="01"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Timeline Badge</label>
+                      <input
+                        type="text"
+                        value={step.badge}
+                        onChange={(e) => {
+                          const updated = [...data.processSteps];
+                          updated[idx].badge = e.target.value;
+                          setData({ ...data, processSteps: updated });
+                        }}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900/60 border border-slate-700 text-sm"
+                        placeholder="Week 1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Milestone Title</label>
+                      <input
+                        type="text"
+                        value={step.title}
+                        onChange={(e) => {
+                          const updated = [...data.processSteps];
+                          updated[idx].title = e.target.value;
+                          setData({ ...data, processSteps: updated });
+                        }}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900/60 border border-slate-700 text-sm"
+                        placeholder="Discovery & Strategy"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Milestone Description</label>
+                    <textarea
+                      rows={2}
+                      value={step.description}
+                      onChange={(e) => {
+                        const updated = [...data.processSteps];
+                        updated[idx].description = e.target.value;
+                        setData({ ...data, processSteps: updated });
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900/60 border border-slate-700 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Key Deliverables</label>
+                    <input
+                      type="text"
+                      value={step.deliverables}
+                      onChange={(e) => {
+                        const updated = [...data.processSteps];
+                        updated[idx].deliverables = e.target.value;
+                        setData({ ...data, processSteps: updated });
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900/60 border border-slate-700 text-xs text-slate-300"
+                      placeholder="Creative brief, sitemap, wireframes..."
+                    />
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-sm font-bold gradient-bg text-white shadow-md shadow-indigo-500/20"
+              >
+                <Save className="w-4 h-4" />
+                <span>Save All Process Steps to Database</span>
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* TAB 5: TESTIMONIALS */}
         {activeTab === 'testimonials' && (
           <div>
             <div className="flex items-center justify-between gap-4 mb-8">
@@ -657,13 +1087,13 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
                           setEditingTestimonial(test);
                           setIsTestimonialModalOpen(true);
                         }}
-                        className="text-xs font-bold text-indigo-400"
+                        className="text-xs font-bold text-indigo-400 hover:text-indigo-300"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteTestimonial(test.id, test.name)}
-                        className="text-xs font-bold text-red-400"
+                        className="text-xs font-bold text-red-400 hover:text-red-300"
                       >
                         Delete
                       </button>
@@ -675,7 +1105,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
           </div>
         )}
 
-        {/* TAB 5: INQUIRIES */}
+        {/* TAB 6: INQUIRIES */}
         {activeTab === 'inquiries' && (
           <div>
             <h2 className="font-display font-extrabold text-2xl text-foreground mb-1">
@@ -703,7 +1133,9 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
                       <div className="flex items-center gap-2 mb-3">
                         <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-indigo-500/10 text-indigo-400">{inq.serviceType}</span>
                         <span className="text-xs text-slate-400">• Budget: {inq.budget}</span>
-                        <span className="text-xs text-slate-500">• {new Date(inq.date).toLocaleDateString()}</span>
+                        <span className="text-xs text-slate-500">
+                          • {inq.createdAt ? new Date(inq.createdAt).toLocaleDateString() : 'Recent'}
+                        </span>
                       </div>
                       <p className="text-xs sm:text-sm text-slate-300 leading-relaxed bg-slate-900/50 p-3.5 rounded-xl border border-slate-800">
                         {inq.message}
@@ -728,6 +1160,110 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
                 ))
               )}
             </div>
+          </div>
+        )}
+
+        {/* TAB 7: SECURITY & ADMIN PASSWORD */}
+        {activeTab === 'security' && (
+          <div className="max-w-2xl">
+            <h2 className="font-display font-extrabold text-2xl text-foreground mb-1">
+              Admin Password &amp; Account Security
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 mb-8">
+              Update your administrator credentials stored in SQLite. Passwords are saved using cryptographic scrypt hashes with individual salts.
+            </p>
+
+            {securityError && (
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs sm:text-sm flex items-center gap-2 mb-6">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{securityError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveSecurity} className="p-6 sm:p-8 rounded-3xl bg-surface border border-surface-border space-y-6">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+                  Admin Username
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={securityForm.username}
+                    onChange={(e) => setSecurityForm({ ...securityForm, username: e.target.value })}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <span className="text-[11px] text-slate-500 mt-1 block">
+                  You can log in with this username from the login page.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+                  Current Password *
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="password"
+                    required
+                    value={securityForm.currentPassword}
+                    onChange={(e) => setSecurityForm({ ...securityForm, currentPassword: e.target.value })}
+                    placeholder="Enter current password to authorize changes"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-surface-border space-y-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-400">
+                  Change Password (Leave blank to keep current)
+                </h4>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+                    New Password (min 6 characters)
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="password"
+                      value={securityForm.newPassword}
+                      onChange={(e) => setSecurityForm({ ...securityForm, newPassword: e.target.value })}
+                      placeholder="••••••••••••"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="password"
+                      value={securityForm.confirmPassword}
+                      onChange={(e) => setSecurityForm({ ...securityForm, confirmPassword: e.target.value })}
+                      placeholder="••••••••••••"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-700/60 text-sm text-foreground focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={securityLoading}
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-sm font-bold gradient-bg text-white shadow-md shadow-indigo-500/20 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                <span>{securityLoading ? 'Updating credentials...' : 'Update Password in Database'}</span>
+              </button>
+            </form>
           </div>
         )}
 

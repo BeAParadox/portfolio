@@ -25,14 +25,26 @@ export default function Hero({ profile }: HeroProps) {
 
         {/* Main Headline */}
         <h1 className="font-display font-extrabold text-4xl sm:text-5xl md:text-6xl tracking-tight leading-[1.15] text-foreground mb-6">
-          Designing &amp; building{' '}
-          <span className="gradient-text">high-converting websites</span>{' '}
-          that elevate your brand.
+          {profile.headline ? (
+            profile.headline
+          ) : (
+            <>
+              Designing &amp; building{' '}
+              <span className="gradient-text">high-converting websites</span>{' '}
+              that elevate your brand.
+            </>
+          )}
         </h1>
 
         {/* Short Introduction */}
         <p className="text-base sm:text-lg md:text-xl text-slate-400 max-w-3xl mx-auto mb-10 leading-relaxed">
-          Hi, I&apos;m <strong className="text-foreground">{profile.name || '[Your Name]'}</strong> — an independent freelance web designer and full-stack developer based in <strong className="text-foreground">{profile.location || '[City, Country]'}</strong>. I partner with ambitious businesses and founders to craft bespoke, ultra-fast websites that look stunning and drive measurable growth.
+          {profile.intro ? (
+            profile.intro
+          ) : (
+            <>
+              Hi, I&apos;m <strong className="text-foreground">{profile.name || '[Your Name]'}</strong> — an independent freelance web designer and full-stack developer based in <strong className="text-foreground">{profile.location || '[City, Country]'}</strong>. I partner with ambitious businesses and founders to craft bespoke, ultra-fast websites that look stunning and drive measurable growth.
+            </>
+          )}
         </p>
 
         {/* CTA Buttons */}
@@ -71,7 +83,7 @@ export default function Hero({ profile }: HeroProps) {
 
         {/* Social Proof Stats Card */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-6 sm:p-8 rounded-2xl bg-surface/80 border border-surface-border shadow-xl backdrop-blur-md">
-          {(profile.stats || [
+          {(profile.stats && profile.stats.length > 0 ? profile.stats : [
             { value: "5+", label: "Years of Experience" },
             { value: "40+", label: "Websites Delivered" },
             { value: "99.8%", label: "Client Satisfaction" },

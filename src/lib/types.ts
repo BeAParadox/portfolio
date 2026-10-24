@@ -10,7 +10,13 @@ export interface SocialLinks {
   dribbble?: string;
 }
 
+export interface PillarItem {
+  title: string;
+  desc: string;
+}
+
 export interface Profile {
+  id?: string;
   name: string;
   role: string;
   subrole: string;
@@ -21,8 +27,12 @@ export interface Profile {
   availability: string;
   headline: string;
   intro: string;
+  bio: string;
+  avatarUrl: string;
   stats: StatItem[];
   socials: SocialLinks;
+  skills: string[];
+  pillars: PillarItem[];
 }
 
 export interface Project {
@@ -41,6 +51,7 @@ export interface Project {
   solution?: string;
   results?: string[];
   liveUrl?: string;
+  sort_order?: number;
 }
 
 export interface Service {
@@ -49,6 +60,17 @@ export interface Service {
   price: string;
   description: string;
   deliverables: string[];
+  sort_order?: number;
+}
+
+export interface ProcessStep {
+  id: string;
+  stepNumber: string;
+  badge: string;
+  title: string;
+  description: string;
+  deliverables: string;
+  sort_order?: number;
 }
 
 export interface Testimonial {
@@ -59,11 +81,12 @@ export interface Testimonial {
   initials: string;
   rating: number;
   quote: string;
+  sort_order?: number;
 }
 
 export interface Inquiry {
   id: string;
-  date: string;
+  createdAt: string;
   name: string;
   email: string;
   company?: string;
@@ -73,10 +96,19 @@ export interface Inquiry {
   status: "new" | "read";
 }
 
+export interface AdminUser {
+  id: string;
+  username: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface PortfolioDatabase {
   profile: Profile;
   projects: Project[];
   services: Service[];
+  processSteps: ProcessStep[];
   testimonials: Testimonial[];
   inquiries: Inquiry[];
+  adminUser?: AdminUser;
 }
