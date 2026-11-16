@@ -35,7 +35,7 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
   const router = useRouter();
   const [data, setData] = useState<PortfolioDatabase>(initialData);
   const [activeTab, setActiveTab] = useState<'projects' | 'profile' | 'services' | 'process' | 'testimonials' | 'inquiries' | 'security'>('projects');
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Search & Filter for Projects
   const [projectSearch, setProjectSearch] = useState('');
@@ -58,9 +58,9 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
   const [securityError, setSecurityError] = useState<string | null>(null);
   const [securityLoading, setSecurityLoading] = useState(false);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
   };
 
   const handleLogout = async () => {
@@ -98,9 +98,12 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
         }
         setIsProjectModalOpen(false);
         setEditingProject(null);
+      } else {
+        const errData = await res.json().catch(() => null);
+        showToast(errData?.details || errData?.error || 'Failed to save project', 'error');
       }
-    } catch {
-      showToast('Error saving project');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Error saving project', 'error');
     }
   };
 
@@ -111,9 +114,12 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
         if (res.ok) {
           setData({ ...data, projects: data.projects.filter(p => p.id !== id) });
           showToast(`Deleted "${title}"`);
+        } else {
+          const errData = await res.json().catch(() => null);
+          showToast(errData?.details || errData?.error || 'Failed to delete project', 'error');
         }
-      } catch {
-        showToast('Error deleting project');
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Error deleting project', 'error');
       }
     }
   };
@@ -129,9 +135,12 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
       });
       if (res.ok) {
         showToast('Profile, Hero, and Tech Stack updated in SQLite!');
+      } else {
+        const errData = await res.json().catch(() => null);
+        showToast(errData?.details || errData?.error || 'Failed to update profile', 'error');
       }
-    } catch {
-      showToast('Error updating profile');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Error updating profile', 'error');
     }
   };
 
@@ -146,9 +155,12 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
       });
       if (res.ok) {
         showToast('Services and pricing packages updated in SQLite!');
+      } else {
+        const errData = await res.json().catch(() => null);
+        showToast(errData?.details || errData?.error || 'Failed to update services', 'error');
       }
-    } catch {
-      showToast('Error updating services');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Error updating services', 'error');
     }
   };
 
@@ -163,9 +175,12 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
       });
       if (res.ok) {
         showToast('Process workflow steps updated in SQLite!');
+      } else {
+        const errData = await res.json().catch(() => null);
+        showToast(errData?.details || errData?.error || 'Failed to update process steps', 'error');
       }
-    } catch {
-      showToast('Error updating process steps');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Error updating process steps', 'error');
     }
   };
 
@@ -221,9 +236,12 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
         }
         setIsTestimonialModalOpen(false);
         setEditingTestimonial(null);
+      } else {
+        const errData = await res.json().catch(() => null);
+        showToast(errData?.details || errData?.error || 'Failed to save testimonial', 'error');
       }
-    } catch {
-      showToast('Error saving testimonial');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Error saving testimonial', 'error');
     }
   };
 
@@ -234,9 +252,12 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
         if (res.ok) {
           setData({ ...data, testimonials: data.testimonials.filter(t => t.id !== id) });
           showToast('Testimonial removed');
+        } else {
+          const errData = await res.json().catch(() => null);
+          showToast(errData?.details || errData?.error || 'Failed to delete testimonial', 'error');
         }
-      } catch {
-        showToast('Error deleting testimonial');
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Error deleting testimonial', 'error');
       }
     }
   };
@@ -249,9 +270,12 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
         if (res.ok) {
           setData({ ...data, inquiries: data.inquiries.filter(i => i.id !== id) });
           showToast('Inquiry deleted');
+        } else {
+          const errData = await res.json().catch(() => null);
+          showToast(errData?.details || errData?.error || 'Failed to delete inquiry', 'error');
         }
-      } catch {
-        showToast('Error deleting inquiry');
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Error deleting inquiry', 'error');
       }
     }
   };
@@ -330,10 +354,18 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
     <div className="min-h-screen flex flex-col md:flex-row bg-background text-foreground">
       
       {/* Toast Alert */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-surface border border-emerald-500/40 text-emerald-400 text-xs sm:text-sm font-semibold shadow-2xl flex items-center gap-2 animate-in slide-in-from-bottom-4">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>{toastMessage}</span>
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-surface border text-xs sm:text-sm font-semibold shadow-2xl flex items-center gap-2.5 animate-in slide-in-from-bottom-4 ${
+          toast.type === 'error' 
+            ? 'border-red-500/50 text-red-400' 
+            : 'border-emerald-500/40 text-emerald-400'
+        }`}>
+          {toast.type === 'error' ? (
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+          )}
+          <span>{toast.message}</span>
         </div>
       )}
 

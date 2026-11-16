@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getDb, resolveDatabasePath } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,6 +7,7 @@ export async function GET() {
   const startTime = Date.now();
   try {
     const db = getDb();
+    const { dbPath, isServerless } = resolveDatabasePath();
     // Run quick ping query to verify database connection health
     const result = db.prepare('SELECT 1 as ping;').get() as { ping: number };
 
@@ -20,6 +21,7 @@ export async function GET() {
         database: {
           status: result?.ping === 1 ? 'connected' : 'degraded',
           engine: 'node:sqlite (WAL mode)',
+          storageMode: isServerless ? 'serverless-ephemeral (/tmp)' : 'persistent (local disk)',
           latencyMs: latency
         },
         environment: process.env.NODE_ENV || 'production'

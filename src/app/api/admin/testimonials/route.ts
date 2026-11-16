@@ -13,7 +13,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, testimonial: newTestimonial }, { status: 201 });
   } catch (error) {
     console.error('Failed to add testimonial:', error);
-    return NextResponse.json({ error: 'Failed to create testimonial' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to create testimonial',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
 
@@ -35,7 +38,10 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: true, testimonial: updated });
   } catch (error) {
     console.error('Failed to update testimonial:', error);
-    return NextResponse.json({ error: 'Failed to update testimonial' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to update testimonial',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
 
@@ -54,6 +60,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success });
   } catch (error) {
     console.error('Failed to delete testimonial:', error);
-    return NextResponse.json({ error: 'Failed to delete testimonial' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to delete testimonial',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }

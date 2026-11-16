@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import crypto from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { 
@@ -16,19 +17,76 @@ import {
   PillarItem
 } from './types';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DATA_DIR, 'portfolio.db');
+/**
+ * Resolves the SQLite database file path.
+ * 
+ * In serverless environments (Vercel, AWS Lambda, Netlify), the project directory
+ * (/var/task) is mounted as a strictly READ-ONLY filesystem.
+ * To allow writes (INSERT, UPDATE, DELETE) without throwing EROFS / SQLITE_READONLY 500 errors,
+ * we automatically copy the bundled template database to the writable temporary directory (/tmp).
+ * 
+ * In standard persistent environments (Docker, Railway, VPS, Local Dev), the database
+ * resides persistently in process.cwd()/data/portfolio.db.
+ */
+export function resolveDatabasePath(): { dbPath: string; isServerless: boolean } {
+  const isServerless = !!(
+    process.env.VERCEL ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.NETLIFY ||
+    process.env.NOW_REGION
+  );
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (isServerless) {
+    const tmpDir = path.join(os.tmpdir(), 'portfolio-data');
+    const tmpDb = path.join(tmpDir, 'portfolio.db');
+    const bundledDb = path.join(process.cwd(), 'data', 'portfolio.db');
+
+    try {
+      if (!fs.existsSync(tmpDir)) {
+        fs.mkdirSync(tmpDir, { recursive: true });
+      }
+      if (!fs.existsSync(tmpDb) && fs.existsSync(bundledDb)) {
+        fs.copyFileSync(bundledDb, tmpDb);
+        console.log('Copied bundled SQLite database to writable /tmp for serverless environment.');
+      }
+      return { dbPath: tmpDb, isServerless: true };
+    } catch (err) {
+      console.warn('Serverless /tmp storage warning:', err);
+      return { dbPath: tmpDb, isServerless: true };
+    }
+  }
+
+  // Standard persistent storage
+  const localDir = path.join(process.cwd(), 'data');
+  const localDb = path.join(localDir, 'portfolio.db');
+
+  try {
+    if (!fs.existsSync(localDir)) {
+      fs.mkdirSync(localDir, { recursive: true });
+    }
+    return { dbPath: localDb, isServerless: false };
+  } catch {
+    // If localDir cannot be created or written (e.g. read-only container), fall back to tmp
+    const fallbackDir = path.join(os.tmpdir(), 'portfolio-data');
+    const fallbackDb = path.join(fallbackDir, 'portfolio.db');
+    try {
+      if (!fs.existsSync(fallbackDir)) {
+        fs.mkdirSync(fallbackDir, { recursive: true });
+      }
+      if (!fs.existsSync(fallbackDb) && fs.existsSync(localDb)) {
+        fs.copyFileSync(localDb, fallbackDb);
+      }
+    } catch {}
+    return { dbPath: fallbackDb, isServerless: true };
+  }
 }
 
 let dbInstance: DatabaseSync | null = null;
 
 export function getDb(): DatabaseSync {
   if (!dbInstance) {
-    dbInstance = new DatabaseSync(DB_PATH);
+    const { dbPath } = resolveDatabasePath();
+    dbInstance = new DatabaseSync(dbPath);
     initDatabase(dbInstance);
   }
   return dbInstance;

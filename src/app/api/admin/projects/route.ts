@@ -13,7 +13,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, project: newProject }, { status: 201 });
   } catch (error) {
     console.error('Failed to add project:', error);
-    return NextResponse.json({ error: 'Failed to create project' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to create project',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
 
@@ -35,7 +38,10 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: true, project: updated });
   } catch (error) {
     console.error('Failed to update project:', error);
-    return NextResponse.json({ error: 'Failed to update project' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to update project',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
 
@@ -54,6 +60,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success });
   } catch (error) {
     console.error('Failed to delete project:', error);
-    return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to delete project',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
