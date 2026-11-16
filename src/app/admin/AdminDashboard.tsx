@@ -489,6 +489,20 @@ export default function AdminDashboard({ initialData }: AdminDashboardProps) {
 
       {/* Main Panel Content */}
       <main className="flex-grow p-6 sm:p-10 max-w-6xl w-full">
+
+        {data.isServerless && (
+          <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs sm:text-sm flex items-start gap-3.5 shadow-lg">
+            <AlertCircle className="w-5 h-5 shrink-0 text-amber-400 mt-0.5" />
+            <div>
+              <p className="font-bold text-sm text-amber-200 mb-1">Serverless Runtime Detected (Vercel)</p>
+              <p className="text-slate-300 leading-relaxed text-xs">
+                Your database writes are running in temporary storage (<code className="px-1.5 py-0.5 rounded bg-amber-950/70 font-mono text-amber-300 font-bold">/tmp</code>).
+                Because Vercel serverless functions are stateless, modifications reset on cold starts or new deployments.
+                For permanent 24/7 persistence with this SQLite setup, deploy with a persistent volume on <strong>Railway</strong>, <strong>Render</strong>, or <strong>Docker / VPS</strong>.
+              </p>
+            </div>
+          </div>
+        )}
         
         {/* TAB 1: PROJECTS */}
         {activeTab === 'projects' && (

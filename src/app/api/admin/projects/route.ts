@@ -57,7 +57,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
     }
     const success = deleteProject(id);
-    return NextResponse.json({ success });
+    if (!success) {
+      return NextResponse.json({ error: 'Project not found or already deleted' }, { status: 404 });
+    }
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to delete project:', error);
     return NextResponse.json({ 

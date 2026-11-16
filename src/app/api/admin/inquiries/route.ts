@@ -28,7 +28,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Inquiry ID is required' }, { status: 400 });
     }
     const success = deleteInquiry(id);
-    return NextResponse.json({ success });
+    if (!success) {
+      return NextResponse.json({ error: 'Inquiry not found or already deleted' }, { status: 404 });
+    }
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to delete inquiry:', error);
     return NextResponse.json({ 

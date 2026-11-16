@@ -111,4 +111,5 @@ export interface PortfolioDatabase {
   testimonials: Testimonial[];
   inquiries: Inquiry[];
   adminUser?: AdminUser;
+  isServerless?: boolean;
 }

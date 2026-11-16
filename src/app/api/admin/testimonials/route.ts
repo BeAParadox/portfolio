@@ -57,7 +57,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Testimonial ID is required' }, { status: 400 });
     }
     const success = deleteTestimonial(id);
-    return NextResponse.json({ success });
+    if (!success) {
+      return NextResponse.json({ error: 'Testimonial not found or already deleted' }, { status: 404 });
+    }
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to delete testimonial:', error);
     return NextResponse.json({ 

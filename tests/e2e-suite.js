@@ -41,6 +41,10 @@ function request(method, reqPath, body = null, headers = {}) {
       });
     });
 
+    req.setTimeout(2500, () => {
+      req.destroy(new Error('Request timeout'));
+    });
+
     req.on('error', reject);
     if (payload) {
       req.write(payload);

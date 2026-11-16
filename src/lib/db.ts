@@ -745,6 +745,8 @@ export function getPortfolioDatabase(): PortfolioDatabase {
     updated_at: adminRow.updated_at
   } : undefined;
 
+  const { isServerless } = resolveDatabasePath();
+
   return {
     profile,
     projects,
@@ -752,7 +754,9 @@ export function getPortfolioDatabase(): PortfolioDatabase {
     processSteps,
     testimonials,
     inquiries,
-    adminUser
+    adminUser,
+    isServerless
+  };
   };
 }
 
