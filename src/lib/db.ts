@@ -757,7 +757,6 @@ export function getPortfolioDatabase(): PortfolioDatabase {
     adminUser,
     isServerless
   };
-  };
 }
 
 // 2. Profile Update
