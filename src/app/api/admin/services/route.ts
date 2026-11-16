@@ -9,7 +9,7 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    const updated = updateServices(body);
+    const updated = await updateServices(body);
     return NextResponse.json({ success: true, services: updated });
   } catch (error) {
     console.error('Failed to update services:', error);

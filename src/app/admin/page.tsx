@@ -3,6 +3,7 @@ import { isAuthenticated } from '@/lib/auth';
 import { getDatabase } from '@/lib/db';
 import AdminDashboard from './AdminDashboard';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function AdminPage() {
@@ -11,6 +12,6 @@ export default async function AdminPage() {
     redirect('/login?from=/admin');
   }
 
-  const db = getDatabase();
+  const db = await getDatabase();
   return <AdminDashboard initialData={db} />;
 }

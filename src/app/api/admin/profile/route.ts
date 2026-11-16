@@ -9,7 +9,7 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    const updated = updateProfile(body);
+    const updated = await updateProfile(body);
     return NextResponse.json({ success: true, profile: updated });
   } catch (error) {
     console.error('Failed to update profile:', error);

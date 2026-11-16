@@ -8,7 +8,7 @@ export async function GET() {
   }
 
   try {
-    const inquiries = getInquiries();
+    const inquiries = await getInquiries();
     return NextResponse.json({ inquiries });
   } catch (error) {
     console.error('Failed to get inquiries:', error);
@@ -27,7 +27,7 @@ export async function DELETE(request: Request) {
     if (!id) {
       return NextResponse.json({ error: 'Inquiry ID is required' }, { status: 400 });
     }
-    const success = deleteInquiry(id);
+    const success = await deleteInquiry(id);
     if (!success) {
       return NextResponse.json({ error: 'Inquiry not found or already deleted' }, { status: 404 });
     }

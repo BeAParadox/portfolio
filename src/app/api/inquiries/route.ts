@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const cleanBudget = (budget ? String(budget).trim() : 'Flexible').slice(0, 100);
     const cleanMessage = message.trim().slice(0, 5000);
 
-    const inquiry = addInquiry({
+    const inquiry = await addInquiry({
       name: cleanName,
       email: cleanEmail,
       company: cleanCompany,

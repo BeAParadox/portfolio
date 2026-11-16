@@ -9,7 +9,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const newTestimonial = addTestimonial(body);
+    const newTestimonial = await addTestimonial(body);
     return NextResponse.json({ success: true, testimonial: newTestimonial }, { status: 201 });
   } catch (error) {
     console.error('Failed to add testimonial:', error);
@@ -31,7 +31,7 @@ export async function PUT(request: Request) {
     if (!id) {
       return NextResponse.json({ error: 'Testimonial ID is required' }, { status: 400 });
     }
-    const updated = updateTestimonial(id, updates);
+    const updated = await updateTestimonial(id, updates);
     if (!updated) {
       return NextResponse.json({ error: 'Testimonial not found' }, { status: 404 });
     }
@@ -56,7 +56,7 @@ export async function DELETE(request: Request) {
     if (!id) {
       return NextResponse.json({ error: 'Testimonial ID is required' }, { status: 400 });
     }
-    const success = deleteTestimonial(id);
+    const success = await deleteTestimonial(id);
     if (!success) {
       return NextResponse.json({ error: 'Testimonial not found or already deleted' }, { status: 404 });
     }

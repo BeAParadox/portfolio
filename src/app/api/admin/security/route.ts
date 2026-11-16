@@ -25,14 +25,14 @@ export async function PUT(request: Request) {
       );
     }
 
-    const result = updateAdminCredentials(currentPassword, newPassword, newUsername);
+    const result = await updateAdminCredentials(currentPassword, newPassword, newUsername);
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Admin security credentials updated successfully in SQLite database.'
+      message: 'Admin security credentials updated successfully.'
     });
   } catch (error) {
     console.error('Failed to update admin security:', error);

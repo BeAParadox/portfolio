@@ -9,7 +9,7 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    const updated = updateProcessSteps(body);
+    const updated = await updateProcessSteps(body);
     return NextResponse.json({ success: true, processSteps: updated });
   } catch (error) {
     console.error('Failed to update process steps:', error);

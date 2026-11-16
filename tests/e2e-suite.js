@@ -138,9 +138,9 @@ function killProcessTree(pid) {
   // ----------------------------------------------------
   // Start Dev Server on isolated port for HTTP E2E tests
   // ----------------------------------------------------
-  console.log(`\n🚀 Launching Next.js server on port ${TEST_PORT}...`);
+  console.log(`\n🚀 Launching Next.js production server on port ${TEST_PORT}...`);
   const projectRoot = path.join(__dirname, '..');
-  const serverProc = spawn('cmd.exe', ['/c', 'npx.cmd', 'next', 'dev', '-p', String(TEST_PORT)], {
+  const serverProc = spawn('cmd.exe', ['/c', 'npx.cmd', 'next', 'start', '-p', String(TEST_PORT)], {
     cwd: projectRoot,
     env: { ...process.env, PORT: String(TEST_PORT) },
     stdio: ['ignore', 'pipe', 'pipe']

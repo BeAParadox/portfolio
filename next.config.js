@@ -3,10 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   optimizeFonts: false,
   poweredByHeader: false,
-  output: 'standalone',
-  experimental: {
-    webpackBuildWorker: false,
-  },
+  output: process.env.DOCKER_BUILD ? 'standalone' : undefined,
   async headers() {
     return [
       {

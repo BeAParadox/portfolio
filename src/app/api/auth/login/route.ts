@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Password is required' }, { status: 400 });
     }
 
-    const verification = verifyAdminCredentials(password, username);
+    const verification = await verifyAdminCredentials(password, username);
     if (!verification.success) {
       return NextResponse.json(
         { error: verification.error || 'Incorrect administrator password' },

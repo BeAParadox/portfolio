@@ -36,8 +36,8 @@ export async function isAuthenticated(): Promise<boolean> {
   }
 }
 
-export function checkPassword(providedPassword: string, username?: string): boolean {
-  const result = verifyAdminCredentials(providedPassword, username);
+export async function checkPassword(providedPassword: string, username?: string): Promise<boolean> {
+  const result = await verifyAdminCredentials(providedPassword, username);
   return result.success;
 }
 

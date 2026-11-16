@@ -16,6 +16,26 @@ import {
   SocialLinks,
   PillarItem
 } from './types';
+import { safeJsonParse, serializeJson } from './json';
+import {
+  isMySqlConfigured,
+  getMySqlPortfolioDatabase,
+  updateMySqlProfile,
+  createMySqlProject,
+  updateMySqlProject,
+  deleteMySqlProject,
+  updateMySqlServices,
+  updateMySqlProcessSteps,
+  createMySqlTestimonial,
+  updateMySqlTestimonial,
+  deleteMySqlTestimonial,
+  createMySqlInquiry,
+  deleteMySqlInquiry,
+  verifyMySqlAdminCredentials,
+  updateMySqlAdminCredentials
+} from './mysql';
+
+export { safeJsonParse, serializeJson, isMySqlConfigured };
 
 /**
  * Resolves the SQLite database file path.
@@ -198,15 +218,9 @@ function initDatabase(db: DatabaseSync) {
     );
   `);
 
-  // 2. Check and Seed Initial Data if Tables are Empty
-  seedIfEmpty(db);
-}
-
-function seedIfEmpty(db: DatabaseSync) {
-  // Check profiles
+  // 2. Seed Initial Portfolio Records If Empty
   const profileCount = db.prepare('SELECT COUNT(*) as count FROM profiles;').get() as { count: number };
   if (profileCount.count === 0) {
-    console.log('Seeding initial profile into SQLite...');
     const insertProfile = db.prepare(`
       INSERT INTO profiles (
         id, name, role, subrole, location, experience, timezone, email,
@@ -229,34 +243,33 @@ function seedIfEmpty(db: DatabaseSync) {
       "I bridge the gap between creative visual design and robust Next.js code. With over 5+ years of experience, I turn complex business ideas into high-converting, accessible digital flagships.",
       '/images/avatar.svg',
       JSON.stringify([
-        { value: '5+', label: 'Years of Experience' },
-        { value: '40+', label: 'Websites Delivered' },
-        { value: '99.8%', label: 'Client Satisfaction' },
-        { value: '100%', label: 'On-Time Delivery' }
+        { value: "5+", label: "Years of Experience" },
+        { value: "40+", label: "Websites Delivered" },
+        { value: "99.8%", label: "Client Satisfaction" },
+        { value: "100%", label: "On-Time Delivery" }
       ]),
       JSON.stringify({
-        github: 'https://github.com',
-        linkedin: 'https://linkedin.com',
-        twitter: 'https://twitter.com',
-        dribbble: 'https://dribbble.com'
+        github: "https://github.com",
+        linkedin: "https://linkedin.com",
+        twitter: "https://twitter.com",
+        dribbble: "https://dribbble.com"
       }),
       JSON.stringify([
-        'Next.js 14', 'React', 'TypeScript', 'Tailwind CSS', 'Figma', 'Node.js',
-        'SQLite / SQL', 'REST APIs', 'Shopify Liquid', 'WordPress / CMS', 'SEO Optimization', 'WCAG 2.1 AA'
+        "Next.js 14", "React", "TypeScript", "Tailwind CSS", "Figma", "Node.js",
+        "SQLite / SQL", "REST APIs", "Shopify Liquid", "WordPress / CMS", "SEO Optimization", "WCAG 2.1 AA"
       ]),
       JSON.stringify([
-        { title: 'User-Centric Intent', desc: 'Layout, hierarchy, and micro-interactions planned around conversion.' },
-        { title: 'Speed as a Feature', desc: 'Blazing-fast load times, 95+ Core Web Vitals, zero bloat.' },
-        { title: 'Radical Reliability', desc: 'Fixed milestones, weekly Loom updates, no surprise costs.' },
-        { title: 'Inclusive & Accessible', desc: 'Engineered according to WCAG 2.1 AA accessibility guidelines.' }
+        { title: "User-Centric Intent", desc: "Layout, hierarchy, and micro-interactions planned around conversion." },
+        { title: "Speed as a Feature", desc: "Blazing-fast load times, 95+ Core Web Vitals, zero bloat." },
+        { title: "Radical Reliability", desc: "Fixed milestones, weekly Loom updates, no surprise costs." },
+        { title: "Inclusive & Accessible", desc: "Engineered according to WCAG 2.1 AA accessibility guidelines." }
       ])
     );
   }
 
-  // Check process steps
-  const stepCount = db.prepare('SELECT COUNT(*) as count FROM process_steps;').get() as { count: number };
-  if (stepCount.count === 0) {
-    console.log('Seeding process steps into SQLite...');
+  // Process Steps
+  const processCount = db.prepare('SELECT COUNT(*) as count FROM process_steps;').get() as { count: number };
+  if (processCount.count === 0) {
     const insertStep = db.prepare(`
       INSERT INTO process_steps (id, stepNumber, badge, title, description, deliverables, sort_order)
       VALUES (?, ?, ?, ?, ?, ?, ?);
@@ -266,37 +279,37 @@ function seedIfEmpty(db: DatabaseSync) {
       {
         id: 'step-1',
         stepNumber: '01',
-        badge: 'Week 1',
-        title: 'Discovery & Strategy',
-        description: 'We unpack your business objectives, target demographics, brand identity, and site architecture to build a watertight creative strategy.',
-        deliverables: 'Creative brief, sitemap, content outline, technical roadmap.',
+        badge: 'Discovery & UX',
+        title: 'Strategy & Wireframing',
+        description: 'We dive deep into your brand identity, target demographic, and conversion targets.',
+        deliverables: 'Competitor audit, sitemap, interactive wireframes, technical scope outline',
         sort_order: 1
       },
       {
         id: 'step-2',
         stepNumber: '02',
-        badge: 'Weeks 2–3',
-        title: 'Wireframing & UI Design',
-        description: 'I produce clickable Figma wireframes and high-fidelity mockups. You see and test how the site looks on desktop and mobile before writing any code.',
-        deliverables: 'Clickable Figma prototype, visual design system, 2 review rounds.',
+        badge: 'UI Design',
+        title: 'Visual Prototype in Figma',
+        description: 'Crafting responsive visual layouts with a comprehensive typography hierarchy.',
+        deliverables: 'High-fidelity Figma file, desktop & mobile mockups, micro-interaction spec',
         sort_order: 2
       },
       {
         id: 'step-3',
         stepNumber: '03',
-        badge: 'Weeks 4–5',
-        title: 'Clean Development',
-        description: 'I write clean, semantic, and performant Next.js code. Features, animations, CMS fields, and contact forms are tested across Safari, Chrome, iOS, and Android.',
-        deliverables: 'Private staging URL for review, cross-browser validation, accessibility audit.',
+        badge: 'Engineering',
+        title: 'Modern Next.js & Full-Stack Code',
+        description: 'Turning validated designs into clean, accessible, ultra-fast Next.js code.',
+        deliverables: 'Modular React components, API routes, fast page load speeds',
         sort_order: 3
       },
       {
         id: 'step-4',
         stepNumber: '04',
-        badge: 'Week 6 & Beyond',
-        title: 'Launch & Handover',
-        description: 'We execute a seamless launch: domain configuration, SSL, SEO metadata setup, and analytics integration. Plus, 30 days of post-launch warranty support.',
-        deliverables: 'Live production deployment, video CMS walkthrough tutorial, 30-day warranty.',
+        badge: 'Delivery',
+        title: 'QA, Speed Audit & Go-Live',
+        description: 'Rigorous cross-browser testing, SEO checklist, and smooth DNS cutover.',
+        deliverables: 'Domain launch, Google Analytics / Search Console setup, 30-day bug warranty',
         sort_order: 4
       }
     ];
@@ -306,11 +319,10 @@ function seedIfEmpty(db: DatabaseSync) {
     }
   }
 
-  // Check services
-  const servCount = db.prepare('SELECT COUNT(*) as count FROM services;').get() as { count: number };
-  if (servCount.count === 0) {
-    console.log('Seeding services into SQLite...');
-    const insertServ = db.prepare(`
+  // Services
+  const servicesCount = db.prepare('SELECT COUNT(*) as count FROM services;').get() as { count: number };
+  if (servicesCount.count === 0) {
+    const insertService = db.prepare(`
       INSERT INTO services (id, title, price, description, deliverables, sort_order)
       VALUES (?, ?, ?, ?, ?, ?);
     `);
@@ -320,7 +332,7 @@ function seedIfEmpty(db: DatabaseSync) {
         id: 'serv-1',
         title: 'Website Design (UI/UX)',
         price: 'From $1,800',
-        description: 'Visually striking, brand-aligned interfaces crafted to engage visitors and guide them effortlessly toward inquiry or purchase. No cookie-cutter templates.',
+        description: 'Tailored Figma design concepts crafted around conversion science and distinct brand personality.',
         deliverables: JSON.stringify([
           'User research & intuitive wireframing',
           'Interactive Figma prototypes (desktop & mobile)',
@@ -333,7 +345,7 @@ function seedIfEmpty(db: DatabaseSync) {
         id: 'serv-2',
         title: 'Website Development',
         price: 'From $2,400',
-        description: 'Modern, robust code engineered for blazing-fast load speeds, clean semantics, and effortless scalability. Built using Next.js, React, and accessible markup.',
+        description: 'Modern, robust code engineered for blazing-fast load speeds, clean semantics, and effortless scalability.',
         deliverables: JSON.stringify([
           'Semantic HTML5, CSS3/Tailwind & modern JavaScript',
           'CMS integrations (WordPress, Webflow, Sanity)',
@@ -346,7 +358,7 @@ function seedIfEmpty(db: DatabaseSync) {
         id: 'serv-3',
         title: 'Responsive Redesigns',
         price: 'From $1,500',
-        description: 'Transform an outdated, sluggish, or mobile-unfriendly site into a modern digital flagship that restores user confidence and boosts your search rankings.',
+        description: 'Transform an outdated, sluggish, or mobile-unfriendly site into a modern digital flagship.',
         deliverables: JSON.stringify([
           'Full UX & technical performance audit',
           'Mobile-first responsive architecture overhaul',
@@ -359,7 +371,7 @@ function seedIfEmpty(db: DatabaseSync) {
         id: 'serv-4',
         title: 'Ongoing Support & Care',
         price: 'From $250/mo',
-        description: 'Total peace of mind after launch. I handle ongoing security updates, content updates, performance checks, and technical troubleshooting so you can focus on business.',
+        description: 'Total peace of mind after launch. Ongoing security updates, content updates, and troubleshooting.',
         deliverables: JSON.stringify([
           '24/7 uptime monitoring & cloud backups',
           'Plugin, theme & framework security patching',
@@ -371,14 +383,13 @@ function seedIfEmpty(db: DatabaseSync) {
     ];
 
     for (const s of services) {
-      insertServ.run(s.id, s.title, s.price, s.description, s.deliverables, s.sort_order);
+      insertService.run(s.id, s.title, s.price, s.description, s.deliverables, s.sort_order);
     }
   }
 
-  // Check projects
-  const projCount = db.prepare('SELECT COUNT(*) as count FROM projects;').get() as { count: number };
-  if (projCount.count === 0) {
-    console.log('Seeding projects into SQLite...');
+  // Projects
+  const projectsCount = db.prepare('SELECT COUNT(*) as count FROM projects;').get() as { count: number };
+  if (projectsCount.count === 0) {
     const insertProj = db.prepare(`
       INSERT INTO projects (
         id, title, category, badge, image, tags, summary, outcome,
@@ -394,12 +405,12 @@ function seedIfEmpty(db: DatabaseSync) {
         badge: 'B2B SaaS',
         image: '/images/project-1.svg',
         tags: JSON.stringify(['UI/UX Design', 'React', 'TypeScript']),
-        summary: 'End-to-end design system and responsive front-end customer portal for a high-growth cloud telemetry service, featuring real-time data streaming and custom charts.',
+        summary: 'End-to-end design system and responsive front-end customer portal for a high-growth cloud telemetry service.',
         outcome: 'Result: +34% user retention, sub-100ms render speeds',
         client: 'Apex Analytics Corp. (Series A Startup)',
         timeline: '6 Weeks',
-        problem: 'Apex needed to replace an uninspired internal dashboard with an enterprise-grade customer portal that could handle real-time data streaming without lagging.',
-        solution: 'Designed and engineered a modular dashboard with customizable KPI widgets, dark mode optimizations, and high-performance SVG chart rendering.',
+        problem: 'Apex needed to replace an uninspired internal dashboard with an enterprise-grade customer portal.',
+        solution: 'Designed and engineered a modular dashboard with customizable KPI widgets, dark mode optimizations, and SVG charts.',
         results: JSON.stringify([
           '+34% increase in daily active user retention',
           'Sub-100ms dashboard widget render latency',
@@ -415,16 +426,16 @@ function seedIfEmpty(db: DatabaseSync) {
         badge: 'E-Commerce',
         image: '/images/project-2.svg',
         tags: JSON.stringify(['Shopify', 'Editorial UI', 'Liquid']),
-        summary: 'Bespoke digital boutique combining tactile editorial typography, curated storytelling galleries, and an optimized frictionless mobile slide-out bag.',
+        summary: 'Bespoke digital boutique combining tactile editorial typography and curated storytelling galleries.',
         outcome: 'Result: +62% mobile conversion, +$85 Average Order Value',
         client: 'Lumina Maison Studio (Milan & New York)',
         timeline: '5 Weeks',
-        problem: 'The client had exquisite handcrafted home objects but suffered from a generic e-commerce template with a clunky mobile checkout flow.',
-        solution: 'Crafted an editorial-style e-commerce layout emphasizing tactile photography, warm minimalist typography, and a frictionless slide-out bag checkout.',
+        problem: 'A high-end home lifestyle atelier required an e-commerce platform reflecting luxury catalog standards.',
+        solution: 'Engineered an ultra-minimalist, typography-forward shopping experience with smooth slide-out cart.',
         results: JSON.stringify([
-          '+62% mobile checkout conversion rate',
-          'Average order value (AOV) increased by $85',
-          'Featured on multiple design inspiration galleries'
+          'Mobile checkout completion increased by 62%',
+          'Average Order Value rose by $85 within 60 days',
+          'Featured in Awwwards Site of the Day Nominees'
         ]),
         liveUrl: 'https://example.com/lumina-preview',
         sort_order: 2
@@ -432,20 +443,20 @@ function seedIfEmpty(db: DatabaseSync) {
       {
         id: 'proj-3',
         title: 'Aura Health — Telehealth & Patient Portal',
-        category: 'development',
-        badge: 'HealthTech',
+        category: 'development web-design',
+        badge: 'Healthcare',
         image: '/images/project-3.svg',
-        tags: JSON.stringify(['Next.js', 'HIPAA Ready', 'WebRTC']),
-        summary: 'A secure, accessible appointment booking engine and telemedicine video interface engineered for patient privacy and frictionless smartphone accessibility.',
-        outcome: 'Result: Sub-3 min booking flow, 100% WCAG AA compliant',
-        client: 'Aura Health Technologies',
+        tags: JSON.stringify(['Next.js', 'HIPAA Ready', 'Tailwind']),
+        summary: 'Accessible, compassionate healthcare platform connecting patients with specialized clinicians.',
+        outcome: 'Result: 4.9/5 patient satisfaction score, 100% WCAG AA compliant',
+        client: 'Aura Integrated Health Network',
         timeline: '8 Weeks',
-        problem: 'Patients faced excessive friction scheduling virtual doctor appointments and accessing confidential health vitals on smartphones.',
-        solution: 'Architected a mobile-first, HIPAA-compliant patient dashboard with one-tap appointment booking, secure file uploads, and encrypted video consultation integration.',
+        problem: 'Patients found booking clinicians confusing, resulting in high drop-off on mobile devices.',
+        solution: 'Designed an ultra-clear, calming intake funnel with 3-step scheduling and high accessibility.',
         results: JSON.stringify([
-          'Average appointment booking time cut down to under 3 minutes',
-          '100% WCAG 2.1 AA accessibility compliance audit passed',
-          '4.9 / 5 rating from over 2,000 active patients'
+          'Intake completion rate jumped from 48% to 84%',
+          '100% WCAG 2.1 AA accessibility audit score',
+          'Reduced customer support scheduling tickets by 55%'
         ]),
         liveUrl: 'https://example.com/aura-preview',
         sort_order: 3
@@ -456,17 +467,17 @@ function seedIfEmpty(db: DatabaseSync) {
         category: 'web-design',
         badge: 'Agency',
         image: '/images/project-4.svg',
-        tags: JSON.stringify(['WebGL', 'Animations', 'Dark Mode']),
-        summary: 'High-impact brand identity and interactive portfolio experience showcasing award-winning spatial design, interactive 3D geometry, and smooth transitions.',
-        outcome: 'Result: Awwwards Site of the Day nominee, 2x inbound inquiries',
-        client: 'Kinetix Studio',
-        timeline: '4 Weeks',
-        problem: 'A creative agency needed a daring digital portfolio to showcase their cutting-edge 3D and interaction design capabilities to international brands.',
-        solution: 'Built an immersive, dark-mode agency showcase featuring smooth page transitions, typography animations, and optimized WebGL interactive elements.',
+        tags: JSON.stringify(['Figma', 'Motion Design', 'Branding']),
+        summary: 'High-contrast portfolio showcasing brand strategy and visual campaigns with dark aesthetics.',
+        outcome: 'Result: 3x increase in inbound client project inquiries',
+        client: 'Kinetix Digital Collective',
+        timeline: '3 Weeks',
+        problem: 'Kinetix was winning awards but losing inbound leads because their old website failed to demonstrate their visual caliber.',
+        solution: 'Built an immersive, editorial agency showcase featuring dynamic case study reveals and micro-animations.',
         results: JSON.stringify([
-          'Nominated for Awwwards Site of the Day',
-          'Organic inbound project inquiries doubled within 60 days',
-          'Maintained a 95+ Google Lighthouse performance score despite rich media'
+          'Inbound enterprise leads tripled within the first quarter',
+          'Average time on site increased from 42s to 3m 18s',
+          'Won Special Mention on Mindsparkle Mag'
         ]),
         liveUrl: 'https://example.com/kinetix-preview',
         sort_order: 4
@@ -477,17 +488,17 @@ function seedIfEmpty(db: DatabaseSync) {
         category: 'development',
         badge: 'Fintech',
         image: '/images/project-5.svg',
-        tags: JSON.stringify(['Fintech Security', 'React', 'Charts']),
-        summary: 'High-net-worth investor portal featuring interactive asset allocation modeling, automated tax-loss rebalancing metrics, and institutional security standards.',
-        outcome: 'Result: 100/100 Core Web Vitals, $80M client assets onboarded',
-        client: 'Vanguard Private Advisory Group',
+        tags: JSON.stringify(['Security', 'TypeScript', 'Charts']),
+        summary: 'Institutional wealth management portal providing high-net-worth clients with real-time portfolio allocation tracking.',
+        outcome: 'Result: $120M+ assets onboarded through the portal',
+        client: 'Vanguard Private Capital Advisory',
         timeline: '7 Weeks',
-        problem: 'High-net-worth clients required a secure, intuitive digital hub to view real-time portfolio allocations, tax-loss harvesting stats, and advisor notes.',
-        solution: 'Designed and developed an institutional-grade web portal featuring interactive asset allocation charts, secure document vaults, and multi-factor authentication.',
+        problem: 'A private capital boutique needed a confidential, modern portal where institutional investors could view assets.',
+        solution: 'Engineered a bank-grade client dashboard with multi-factor authentication and interactive allocation charts.',
         results: JSON.stringify([
-          'Zero security vulnerabilities detected in third-party penetration testing',
-          '100/100 Core Web Vitals score across all major browsers',
-          'Over $80M in assets onboarded in the first quarter post-launch'
+          '$120M+ client capital onboarded in first 90 days',
+          'Zero security vulnerabilities reported in third-party penetration test',
+          'Client retention improved by 28%'
         ]),
         liveUrl: 'https://example.com/vanguard-preview',
         sort_order: 5
@@ -499,12 +510,12 @@ function seedIfEmpty(db: DatabaseSync) {
         badge: 'Redesign',
         image: '/images/project-6.svg',
         tags: JSON.stringify(['Mobile-First', 'PageSpeed', 'E-Commerce']),
-        summary: 'Comprehensive overhaul of a sluggish organic beauty shop, rewriting asset pipelines, streamlining one-click checkout, and eliminating render-blocking code.',
+        summary: 'Comprehensive overhaul of a sluggish organic beauty shop, rewriting asset pipelines and streamlining one-click checkout.',
         outcome: 'Result: Load time cut from 6.2s to 0.8s, bounce rate down 41%',
         client: 'Terra Organic Naturals',
         timeline: '4 Weeks',
-        problem: 'An organic beauty brand suffered from slow 6.2-second load times on mobile devices, leading to high bounce rates and lost ad dollars.',
-        solution: 'Performed a full design overhaul and code refactoring: compressed media pipelines, eliminated render-blocking scripts, and designed an intuitive mobile catalog.',
+        problem: 'An organic beauty brand suffered from slow 6.2-second load times on mobile devices, leading to high bounce rates.',
+        solution: 'Performed a full design overhaul: compressed media pipelines, eliminated render-blocking scripts, and designed an intuitive mobile catalog.',
         results: JSON.stringify([
           'Page load time reduced from 6.2s to 0.8s (87% improvement)',
           'Mobile bounce rate dropped by 41%',
@@ -516,17 +527,13 @@ function seedIfEmpty(db: DatabaseSync) {
     ];
 
     for (const p of projects) {
-      insertProj.run(
-        p.id, p.title, p.category, p.badge, p.image, p.tags, p.summary, p.outcome,
-        p.client, p.timeline, p.problem, p.solution, p.results, p.liveUrl, p.sort_order
-      );
+      insertProj.run(p.id, p.title, p.category, p.badge, p.image, p.tags, p.summary, p.outcome, p.client, p.timeline, p.problem, p.solution, p.results, p.liveUrl, p.sort_order);
     }
   }
 
-  // Check testimonials
-  const testCount = db.prepare('SELECT COUNT(*) as count FROM testimonials;').get() as { count: number };
-  if (testCount.count === 0) {
-    console.log('Seeding testimonials into SQLite...');
+  // Testimonials
+  const testimonialsCount = db.prepare('SELECT COUNT(*) as count FROM testimonials;').get() as { count: number };
+  if (testimonialsCount.count === 0) {
     const insertTest = db.prepare(`
       INSERT INTO testimonials (id, name, role, company, initials, rating, quote, sort_order)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?);
@@ -570,13 +577,12 @@ function seedIfEmpty(db: DatabaseSync) {
     }
   }
 
-  // Check admins
+  // Admin Account (scrypt hashed)
   const adminCount = db.prepare('SELECT COUNT(*) as count FROM admins;').get() as { count: number };
   if (adminCount.count === 0) {
-    console.log('Seeding initial admin account into SQLite with cryptographic scrypt hash...');
-    const salt = generateSalt();
+    const salt = crypto.randomBytes(16).toString('hex');
     const initialPassword = process.env.INITIAL_ADMIN_PASSWORD || 'admin123';
-    const hash = hashPassword(initialPassword, salt);
+    const hash = crypto.scryptSync(initialPassword, salt, 64).toString('hex');
     const now = new Date().toISOString();
 
     const insertAdmin = db.prepare(`
@@ -587,44 +593,9 @@ function seedIfEmpty(db: DatabaseSync) {
   }
 }
 
-// Helper utilities to guarantee safe JSON parsing and prevent double-stringification
-export function safeJsonParse<T>(val: unknown, fallback: T): T {
-  if (val === null || val === undefined) return fallback;
-  if (typeof val !== 'string') return (val as T) ?? fallback;
-  try {
-    let parsed: unknown = JSON.parse(val);
-    while (typeof parsed === 'string') {
-      try {
-        parsed = JSON.parse(parsed);
-      } catch {
-        break;
-      }
-    }
-    return (parsed as T) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
+// ------------------- INTERNAL SQLITE CRUD IMPLEMENTATIONS -------------------
 
-export function serializeJson(val: unknown, fallback: string = '[]'): string {
-  if (val === null || val === undefined) return fallback;
-  if (typeof val === 'string') {
-    try {
-      const parsed = JSON.parse(val);
-      if (typeof parsed === 'object' && parsed !== null) {
-        return JSON.stringify(parsed);
-      }
-    } catch {
-      // not JSON object
-    }
-  }
-  return JSON.stringify(val);
-}
-
-// ------------------- CRUD API FUNCTIONS -------------------
-
-// 1. Full Database / Portfolio Query (Used by public site & admin)
-export function getPortfolioDatabase(): PortfolioDatabase {
+export function getSqlitePortfolioDatabase(): PortfolioDatabase {
   const db = getDb();
   
   // Profile
@@ -667,7 +638,7 @@ export function getPortfolioDatabase(): PortfolioDatabase {
   };
 
   // Projects
-  const projectRows = db.prepare('SELECT * FROM projects ORDER BY sort_order ASC, rowid ASC;').all() as Array<Record<string, unknown>>;
+  const projectRows = db.prepare('SELECT * FROM projects ORDER BY sort_order ASC;').all() as Array<Record<string, unknown>>;
   const projects: Project[] = projectRows.map(r => ({
     id: r.id as string,
     title: r.title as string,
@@ -687,7 +658,7 @@ export function getPortfolioDatabase(): PortfolioDatabase {
   }));
 
   // Services
-  const serviceRows = db.prepare('SELECT * FROM services ORDER BY sort_order ASC, rowid ASC;').all() as Array<Record<string, unknown>>;
+  const serviceRows = db.prepare('SELECT * FROM services ORDER BY sort_order ASC;').all() as Array<Record<string, unknown>>;
   const services: Service[] = serviceRows.map(r => ({
     id: r.id as string,
     title: r.title as string,
@@ -698,7 +669,7 @@ export function getPortfolioDatabase(): PortfolioDatabase {
   }));
 
   // Process Steps
-  const stepRows = db.prepare('SELECT * FROM process_steps ORDER BY sort_order ASC, rowid ASC;').all() as Array<Record<string, unknown>>;
+  const stepRows = db.prepare('SELECT * FROM process_steps ORDER BY sort_order ASC;').all() as Array<Record<string, unknown>>;
   const processSteps: ProcessStep[] = stepRows.map(r => ({
     id: r.id as string,
     stepNumber: r.stepNumber as string,
@@ -710,7 +681,7 @@ export function getPortfolioDatabase(): PortfolioDatabase {
   }));
 
   // Testimonials
-  const testRows = db.prepare('SELECT * FROM testimonials ORDER BY sort_order ASC, rowid ASC;').all() as Array<Record<string, unknown>>;
+  const testRows = db.prepare('SELECT * FROM testimonials ORDER BY sort_order ASC;').all() as Array<Record<string, unknown>>;
   const testimonials: Testimonial[] = testRows.map(r => ({
     id: r.id as string,
     name: r.name as string,
@@ -759,10 +730,9 @@ export function getPortfolioDatabase(): PortfolioDatabase {
   };
 }
 
-// 2. Profile Update
-export function updateProfile(updates: Partial<Profile>): Profile {
+function updateSqliteProfile(updates: Partial<Profile>): Profile {
   const db = getDb();
-  const current = getPortfolioDatabase().profile;
+  const current = getSqlitePortfolioDatabase().profile;
   const merged: Profile = { ...current, ...updates };
 
   const stmt = db.prepare(`
@@ -795,8 +765,7 @@ export function updateProfile(updates: Partial<Profile>): Profile {
   return merged;
 }
 
-// 3. Project CRUD
-export function createProject(project: Omit<Project, 'id'>): Project {
+function createSqliteProject(project: Omit<Project, 'id'>): Project {
   const db = getDb();
   const id = `proj-${Date.now()}`;
   const stmt = db.prepare(`
@@ -827,7 +796,7 @@ export function createProject(project: Omit<Project, 'id'>): Project {
   return { id, ...project };
 }
 
-export function updateProject(id: string, updates: Partial<Project>): Project | null {
+function updateSqliteProject(id: string, updates: Partial<Project>): Project | null {
   const db = getDb();
   const existing = db.prepare('SELECT * FROM projects WHERE id = ?;').get(id) as Record<string, unknown>;
   if (!existing) return null;
@@ -876,14 +845,13 @@ export function updateProject(id: string, updates: Partial<Project>): Project | 
   };
 }
 
-export function deleteProject(id: string): boolean {
+function deleteSqliteProject(id: string): boolean {
   const db = getDb();
   const info = db.prepare('DELETE FROM projects WHERE id = ?;').run(id);
   return info.changes > 0;
 }
 
-// 4. Services Updates
-export function updateServices(services: Service[]): Service[] {
+function updateSqliteServices(services: Service[]): Service[] {
   const db = getDb();
   db.exec('DELETE FROM services;');
   const stmt = db.prepare(`
@@ -899,8 +867,7 @@ export function updateServices(services: Service[]): Service[] {
   return services;
 }
 
-// 5. Process Steps Updates
-export function updateProcessSteps(steps: ProcessStep[]): ProcessStep[] {
+function updateSqliteProcessSteps(steps: ProcessStep[]): ProcessStep[] {
   const db = getDb();
   db.exec('DELETE FROM process_steps;');
   const stmt = db.prepare(`
@@ -916,8 +883,7 @@ export function updateProcessSteps(steps: ProcessStep[]): ProcessStep[] {
   return steps;
 }
 
-// 6. Testimonials CRUD
-export function createTestimonial(testimonial: Omit<Testimonial, 'id'>): Testimonial {
+function createSqliteTestimonial(testimonial: Omit<Testimonial, 'id'>): Testimonial {
   const db = getDb();
   const id = `test-${Date.now()}`;
   const stmt = db.prepare(`
@@ -937,7 +903,7 @@ export function createTestimonial(testimonial: Omit<Testimonial, 'id'>): Testimo
   return { id, ...testimonial };
 }
 
-export function updateTestimonial(id: string, updates: Partial<Testimonial>): Testimonial | null {
+function updateSqliteTestimonial(id: string, updates: Partial<Testimonial>): Testimonial | null {
   const db = getDb();
   const existing = db.prepare('SELECT * FROM testimonials WHERE id = ?;').get(id) as Record<string, unknown>;
   if (!existing) return null;
@@ -958,14 +924,13 @@ export function updateTestimonial(id: string, updates: Partial<Testimonial>): Te
   return { id, name, role, company, initials, rating, quote };
 }
 
-export function deleteTestimonial(id: string): boolean {
+function deleteSqliteTestimonial(id: string): boolean {
   const db = getDb();
   const info = db.prepare('DELETE FROM testimonials WHERE id = ?;').run(id);
   return info.changes > 0;
 }
 
-// 7. Inquiries CRUD
-export function createInquiry(inquiry: Omit<Inquiry, 'id' | 'createdAt' | 'status'>): Inquiry {
+function createSqliteInquiry(inquiry: Omit<Inquiry, 'id' | 'createdAt' | 'status'>): Inquiry {
   const db = getDb();
   const id = `inq-${Date.now()}`;
   const createdAt = new Date().toISOString();
@@ -1001,23 +966,11 @@ export function createInquiry(inquiry: Omit<Inquiry, 'id' | 'createdAt' | 'statu
   };
 }
 
-export function deleteInquiry(id: string): boolean {
+function deleteSqliteInquiry(id: string): boolean {
   const db = getDb();
   const info = db.prepare('DELETE FROM inquiries WHERE id = ?;').run(id);
   return info.changes > 0;
 }
-
-// Convenient Aliases and Queries
-export const getDatabase = getPortfolioDatabase;
-export const addProject = createProject;
-export const addTestimonial = createTestimonial;
-export const addInquiry = createInquiry;
-
-export function getInquiries(): Inquiry[] {
-  return getPortfolioDatabase().inquiries;
-}
-
-// 8. Admin Authentication & Credential Management via SQLite
 
 export function hashPassword(password: string, salt: string): string {
   return crypto.scryptSync(password, salt, 64).toString('hex');
@@ -1039,7 +992,7 @@ export function verifyPasswordHash(password: string, salt: string, storedHash: s
   }
 }
 
-export function verifyAdminCredentials(password: string, username?: string): { success: boolean; username?: string; error?: string } {
+function verifySqliteAdminCredentials(password: string, username?: string): { success: boolean; username?: string; error?: string } {
   const db = getDb();
   let row: Record<string, string> | undefined;
 
@@ -1061,7 +1014,7 @@ export function verifyAdminCredentials(password: string, username?: string): { s
   return { success: true, username: row.username };
 }
 
-export function updateAdminCredentials(currentPassword: string, newPassword?: string, newUsername?: string): { success: boolean; error?: string } {
+function updateSqliteAdminCredentials(currentPassword: string, newPassword?: string, newUsername?: string): { success: boolean; error?: string } {
   const db = getDb();
   const current = db.prepare('SELECT * FROM admins LIMIT 1;').get() as Record<string, string> | undefined;
 
@@ -1105,4 +1058,230 @@ export function updateAdminCredentials(currentPassword: string, newPassword?: st
   return { success: true };
 }
 
+// ------------------- UNIFIED PUBLIC DATA LAYER API (MYSQL + SQLITE FALLBACK) -------------------
 
+/**
+ * Retrieves the full portfolio database.
+ * If MySQL is configured via MYSQL_URL / DATABASE_URL, queries MySQL.
+ * Otherwise, falls back gracefully to SQLite.
+ */
+export async function getPortfolioDatabase(): Promise<PortfolioDatabase> {
+  if (isMySqlConfigured()) {
+    try {
+      return await getMySqlPortfolioDatabase();
+    } catch (err) {
+      console.error('MySQL query failed, falling back to SQLite:', err);
+    }
+  }
+  return getSqlitePortfolioDatabase();
+}
+
+/**
+ * Updates developer profile attributes.
+ */
+export async function updateProfile(updates: Partial<Profile>): Promise<Profile> {
+  if (isMySqlConfigured()) {
+    try {
+      return await updateMySqlProfile(updates);
+    } catch (err) {
+      console.error('MySQL updateProfile failed, falling back to SQLite:', err);
+    }
+  }
+  return updateSqliteProfile(updates);
+}
+
+/**
+ * Creates a new showcase project.
+ */
+export async function createProject(project: Omit<Project, 'id'>): Promise<Project> {
+  if (isMySqlConfigured()) {
+    try {
+      return await createMySqlProject(project);
+    } catch (err) {
+      console.error('MySQL createProject failed, falling back to SQLite:', err);
+    }
+  }
+  return createSqliteProject(project);
+}
+
+/**
+ * Updates an existing project by ID.
+ */
+export async function updateProject(id: string, updates: Partial<Project>): Promise<Project | null> {
+  if (isMySqlConfigured()) {
+    try {
+      return await updateMySqlProject(id, updates);
+    } catch (err) {
+      console.error('MySQL updateProject failed, falling back to SQLite:', err);
+    }
+  }
+  return updateSqliteProject(id, updates);
+}
+
+/**
+ * Deletes a project by ID.
+ */
+export async function deleteProject(id: string): Promise<boolean> {
+  if (isMySqlConfigured()) {
+    try {
+      return await deleteMySqlProject(id);
+    } catch (err) {
+      console.error('MySQL deleteProject failed, falling back to SQLite:', err);
+    }
+  }
+  return deleteSqliteProject(id);
+}
+
+/**
+ * Replaces services with updated list.
+ */
+export async function updateServices(services: Service[]): Promise<Service[]> {
+  if (isMySqlConfigured()) {
+    try {
+      return await updateMySqlServices(services);
+    } catch (err) {
+      console.error('MySQL updateServices failed, falling back to SQLite:', err);
+    }
+  }
+  return updateSqliteServices(services);
+}
+
+/**
+ * Replaces process steps with updated sequence.
+ */
+export async function updateProcessSteps(steps: ProcessStep[]): Promise<ProcessStep[]> {
+  if (isMySqlConfigured()) {
+    try {
+      return await updateMySqlProcessSteps(steps);
+    } catch (err) {
+      console.error('MySQL updateProcessSteps failed, falling back to SQLite:', err);
+    }
+  }
+  return updateSqliteProcessSteps(steps);
+}
+
+/**
+ * Creates a new client testimonial.
+ */
+export async function createTestimonial(testimonial: Omit<Testimonial, 'id'>): Promise<Testimonial> {
+  if (isMySqlConfigured()) {
+    try {
+      return await createMySqlTestimonial(testimonial);
+    } catch (err) {
+      console.error('MySQL createTestimonial failed, falling back to SQLite:', err);
+    }
+  }
+  return createSqliteTestimonial(testimonial);
+}
+
+/**
+ * Updates a client testimonial.
+ */
+export async function updateTestimonial(id: string, updates: Partial<Testimonial>): Promise<Testimonial | null> {
+  if (isMySqlConfigured()) {
+    try {
+      return await updateMySqlTestimonial(id, updates);
+    } catch (err) {
+      console.error('MySQL updateTestimonial failed, falling back to SQLite:', err);
+    }
+  }
+  return updateSqliteTestimonial(id, updates);
+}
+
+/**
+ * Deletes a testimonial by ID.
+ */
+export async function deleteTestimonial(id: string): Promise<boolean> {
+  if (isMySqlConfigured()) {
+    try {
+      return await deleteMySqlTestimonial(id);
+    } catch (err) {
+      console.error('MySQL deleteTestimonial failed, falling back to SQLite:', err);
+    }
+  }
+  return deleteSqliteTestimonial(id);
+}
+
+/**
+ * Creates a client project inquiry.
+ */
+export async function createInquiry(inquiry: Omit<Inquiry, 'id' | 'createdAt' | 'status'>): Promise<Inquiry> {
+  if (isMySqlConfigured()) {
+    try {
+      return await createMySqlInquiry(inquiry);
+    } catch (err) {
+      console.error('MySQL createInquiry failed, falling back to SQLite:', err);
+    }
+  }
+  return createSqliteInquiry(inquiry);
+}
+
+/**
+ * Deletes an inquiry by ID.
+ */
+export async function deleteInquiry(id: string): Promise<boolean> {
+  if (isMySqlConfigured()) {
+    try {
+      return await deleteMySqlInquiry(id);
+    } catch (err) {
+      console.error('MySQL deleteInquiry failed, falling back to SQLite:', err);
+    }
+  }
+  return deleteSqliteInquiry(id);
+}
+
+/**
+ * Retrieves all client inquiries.
+ */
+export async function getInquiries(): Promise<Inquiry[]> {
+  if (isMySqlConfigured()) {
+    try {
+      const db = await getMySqlPortfolioDatabase();
+      return db.inquiries;
+    } catch (err) {
+      console.error('MySQL getInquiries failed, falling back to SQLite:', err);
+    }
+  }
+  return getSqlitePortfolioDatabase().inquiries;
+}
+
+/**
+ * Verifies admin password hash using scrypt timing-safe equality.
+ */
+export async function verifyAdminCredentials(
+  password: string,
+  username?: string
+): Promise<{ success: boolean; username?: string; error?: string }> {
+  if (isMySqlConfigured()) {
+    try {
+      return await verifyMySqlAdminCredentials(password, username);
+    } catch (err) {
+      console.error('MySQL verifyAdminCredentials failed, falling back to SQLite:', err);
+    }
+  }
+  return verifySqliteAdminCredentials(password, username);
+}
+
+/**
+ * Updates administrator username and/or password.
+ */
+export async function updateAdminCredentials(
+  currentPassword: string,
+  newPassword?: string,
+  newUsername?: string
+): Promise<{ success: boolean; error?: string }> {
+  if (isMySqlConfigured()) {
+    try {
+      return await updateMySqlAdminCredentials(currentPassword, newPassword, newUsername);
+    } catch (err) {
+      console.error('MySQL updateAdminCredentials failed, falling back to SQLite:', err);
+    }
+  }
+  return updateSqliteAdminCredentials(currentPassword, newPassword, newUsername);
+}
+
+// Convenient Aliases and Named Exports
+export const getDatabase = getPortfolioDatabase;
+export const addProject = createProject;
+export const addTestimonial = createTestimonial;
+export const addInquiry = createInquiry;

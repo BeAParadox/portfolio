@@ -1,16 +1,22 @@
-# Freelance Portfolio & Full-Stack CMS — Next.js 14 + SQLite (Production-Ready)
+# Freelance Portfolio & Full-Stack CMS — Next.js 14 + MySQL & SQLite (Production-Ready)
 
-A modern, production-hardened portfolio website with **zero hardcoded content**, built with **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS**, and **SQLite (`node:sqlite`)**. Includes a fully authenticated **Studio CMS Dashboard (`/admin`)** with **salted scrypt password authentication**, **Edge Middleware route protection**, **standalone Docker containerization**, and **built-in rate limiting**.
+A modern, production-hardened portfolio website with **zero hardcoded content**, built with **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS**, and **MySQL (`mysql2`)** with **SQLite (`node:sqlite`) fallback**. Includes a fully authenticated **Studio CMS Dashboard (`/admin`)** with **salted scrypt password authentication**, **Edge Middleware route protection**, **instant cloud deployment on Vercel / Railway / Docker**, and **built-in rate limiting**.
 
 ---
 
-## ⚡ Production Architecture & Hardening
+## ⚡ Production Database Architecture: Dual MySQL & SQLite
 
-### 1. Database Engine: SQLite in WAL Mode (`data/portfolio.db`)
-- Powered by Node.js 22's native `DatabaseSync` engine (`node:sqlite`) — zero external native C++ compilation or third-party database subscriptions required.
-- **WAL Mode (Write-Ahead Logging)** enabled (`PRAGMA journal_mode = WAL;` and `PRAGMA synchronous = NORMAL;`) to allow concurrent non-blocking reads while writes commit seamlessly.
-- `PRAGMA busy_timeout = 5000;` prevents `SQLITE_BUSY` lock contention under concurrent load.
-- 64MB memory page cache (`PRAGMA cache_size = -64000;`) delivering sub-10ms query responses.
+The application features a production-hardened dual database architecture managed in [`src/lib/mysql.ts`](src/lib/mysql.ts) and [`src/lib/db.ts`](src/lib/db.ts):
+
+### 1. Cloud Persistent MySQL (Primary Production Mode)
+- **Automatic Connection Pooling**: Uses `mysql2/promise` with SSL/TLS encryption support for cloud-hosted relational databases (Aiven, TiDB Cloud, PlanetScale, Railway, Supabase/Neon, Clever Cloud).
+- **Self-Healing Schema**: Automatically creates all 7 relational tables on first boot and seeds them with full project data and scrypt-hashed admin credentials if empty.
+- **Serverless Persistence on Vercel**: Unlike local file-based databases that reset on serverless cold starts, MySQL persists all your portfolio edits, new projects, testimonials, and client inquiries 24/7 across every deployment.
+- **Configuration**: Simply set `MYSQL_URL` (or `DATABASE_URL`) in your Vercel Project Settings (Settings → Environment Variables).
+
+### 2. SQLite Native Fallback Mode (`node:sqlite`)
+- When `MYSQL_URL` is not provided (e.g. during local offline development or CI test builds), the app runs seamlessly on Node.js 22's native SQLite engine in WAL mode (`data/portfolio.db`).
+- In serverless environments without MySQL, it automatically mirrors the template database to `/tmp` to avoid read-only filesystem errors (`EROFS`).
 
 ### 2. Database Schema (7 Relational Tables)
 The database schema is fully managed in [`src/lib/db.ts`](src/lib/db.ts):

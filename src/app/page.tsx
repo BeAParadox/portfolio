@@ -9,11 +9,11 @@ import Testimonials from '@/components/Testimonials';
 import Contact from '@/components/Contact';
 import Footer from '@/components/Footer';
 
-// Revalidate on demand or every 60 seconds
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default function HomePage() {
-  const db = getDatabase();
+export default async function HomePage() {
+  const db = await getDatabase();
 
   return (
     <div className="flex flex-col min-h-screen">

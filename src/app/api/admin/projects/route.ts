@@ -9,7 +9,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const newProject = addProject(body);
+    const newProject = await addProject(body);
     return NextResponse.json({ success: true, project: newProject }, { status: 201 });
   } catch (error) {
     console.error('Failed to add project:', error);
@@ -31,7 +31,7 @@ export async function PUT(request: Request) {
     if (!id) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
     }
-    const updated = updateProject(id, updates);
+    const updated = await updateProject(id, updates);
     if (!updated) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
@@ -56,7 +56,7 @@ export async function DELETE(request: Request) {
     if (!id) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
     }
-    const success = deleteProject(id);
+    const success = await deleteProject(id);
     if (!success) {
       return NextResponse.json({ error: 'Project not found or already deleted' }, { status: 404 });
     }
