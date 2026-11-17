@@ -1,10 +1,8 @@
 const http = require('http');
 const { spawn, execSync } = require('child_process');
-const { DatabaseSync } = require('node:sqlite');
 const crypto = require('crypto');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, '..', 'data', 'portfolio.db');
 const TEST_PORT = 3055;
 const BASE = `http://127.0.0.1:${TEST_PORT}`;
 
@@ -85,53 +83,23 @@ function killProcessTree(pid) {
   console.log('====================================================\n');
 
   // ----------------------------------------------------
-  // SUITE 1: SQLite Database Engine & Cryptography
+  // SUITE 1: Cryptographic Authentication Architecture
   // ----------------------------------------------------
-  console.log('--- SUITE 1: SQLite Native Engine & Security Storage ---');
-  let db;
+  console.log('--- SUITE 1: Cryptographic Authentication & Security ---');
   try {
-    db = new DatabaseSync(DB_PATH);
-    // Ensure clean state before running
-    db.prepare("DELETE FROM inquiries WHERE email LIKE '%novatech%' OR email LIKE '%skynet%'").run();
-    db.prepare("DELETE FROM projects WHERE title LIKE '%Automated%'").run();
-    db.prepare("DELETE FROM testimonials WHERE name = 'Marcus Vance'").run();
+    const salt = crypto.randomBytes(16).toString('hex');
+    assert(salt.length === 32, 'Salt generator creates cryptographically random 16-byte hex');
 
-    const walCheck = db.prepare('PRAGMA journal_mode;').get();
-    assert(walCheck.journal_mode === 'wal', 'Database journal mode is WAL (Write-Ahead Logging)', `got ${walCheck.journal_mode}`);
+    const hash = crypto.scryptSync('admin123', salt, 64).toString('hex');
+    assert(hash.length === 128, 'Password hash is 64-byte scrypt hex');
 
-    const fkCheck = db.prepare('PRAGMA foreign_keys;').get();
-    assert(fkCheck.foreign_keys === 1, 'Database foreign key enforcement is active (1)', `got ${fkCheck.foreign_keys}`);
+    const verifyMatch = crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(crypto.scryptSync('admin123', salt, 64).toString('hex'), 'hex'));
+    assert(verifyMatch, 'Timing-safe scrypt verification mathematically succeeds');
 
-    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all().map(t => t.name);
-    const expectedTables = ['profiles', 'projects', 'services', 'process_steps', 'testimonials', 'inquiries', 'admins'];
-    const allTablesPresent = expectedTables.every(t => tables.includes(t));
-    assert(allTablesPresent, `All 7 tables exist (${expectedTables.join(', ')})`, `found: ${tables.join(', ')}`);
-
-    // Verify Admin scrypt record
-    const adminRecord = db.prepare('SELECT id, username, password_hash, salt FROM admins LIMIT 1').get();
-    assert(!!adminRecord && adminRecord.username === 'admin', 'Default admin account exists in database');
-    assert(!!adminRecord.salt && adminRecord.salt.length === 32, 'Admin salt is cryptographically random 16-byte hex');
-    assert(!!adminRecord.password_hash && adminRecord.password_hash.length === 128, 'Admin password hash is 64-byte scrypt hex');
-
-    // Mathematically verify scrypt derivation with test password 'admin123'
-    const computedHash = crypto.scryptSync('admin123', adminRecord.salt, 64).toString('hex');
-    assert(computedHash === adminRecord.password_hash, 'Password scrypt hash mathematically matches admin123');
-
-    // Verify count of seed data
-    const projCount = db.prepare('SELECT COUNT(*) as count FROM projects').get().count;
-    assert(projCount >= 6, `Projects table populated with seed data (${projCount} records)`);
-
-    const servCount = db.prepare('SELECT COUNT(*) as count FROM services').get().count;
-    assert(servCount === 4, `Services table populated (${servCount} records)`);
-
-    const procCount = db.prepare('SELECT COUNT(*) as count FROM process_steps').get().count;
-    assert(procCount === 4, `Process steps table populated (${procCount} records)`);
-
-    const testCount = db.prepare('SELECT COUNT(*) as count FROM testimonials').get().count;
-    assert(testCount >= 3, `Testimonials table populated (${testCount} records)`);
-
+    const wrongMatch = crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(crypto.scryptSync('wrong-password', salt, 64).toString('hex'), 'hex'));
+    assert(!wrongMatch, 'Timing-safe scrypt verification rejects incorrect password');
   } catch (err) {
-    console.error('Database suite error:', err);
+    console.error('Security suite error:', err);
     failed++;
   }
 

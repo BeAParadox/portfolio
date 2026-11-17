@@ -1,18 +1,17 @@
 import { NextResponse } from 'next/server';
-import { getDb, resolveDatabasePath, isMySqlConfigured } from '@/lib/db';
-import { getMySqlPool, ensureMySqlInitialized } from '@/lib/mysql';
+import { isMongoConfigured, getMongoDb, ensureMongoInitialized } from '@/lib/mongodb';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const startTime = Date.now();
-  const usingMySql = isMySqlConfigured();
+  const usingMongo = isMongoConfigured();
 
   try {
-    if (usingMySql) {
-      await ensureMySqlInitialized();
-      const pool = getMySqlPool();
-      const [rows]: any = await pool.execute('SELECT 1 as ping;');
+    if (usingMongo) {
+      await ensureMongoInitialized();
+      const db = await getMongoDb();
+      const pingResult = await db.command({ ping: 1 });
       const latency = Date.now() - startTime;
 
       return NextResponse.json(
@@ -21,9 +20,10 @@ export async function GET() {
           timestamp: new Date().toISOString(),
           uptime: process.uptime(),
           database: {
-            status: rows?.[0]?.ping === 1 ? 'connected' : 'degraded',
-            engine: 'MySQL (mysql2 connection pool)',
-            storageMode: 'cloud persistent (24/7 relational database)',
+            status: pingResult.ok === 1 ? 'connected' : 'degraded',
+            engine: 'MongoDB Atlas (NoSQL Connection Pool)',
+            storageMode: 'cloud persistent (24/7 MongoDB Cluster)',
+            databaseName: db.databaseName,
             latencyMs: latency
           },
           environment: process.env.NODE_ENV || 'production'
@@ -32,22 +32,16 @@ export async function GET() {
       );
     }
 
-    // SQLite fallback mode
-    const db = getDb();
-    const { isServerless } = resolveDatabasePath();
-    const result = db.prepare('SELECT 1 as ping;').get() as { ping: number };
-    const latency = Date.now() - startTime;
-
     return NextResponse.json(
       {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         database: {
-          status: result?.ping === 1 ? 'connected' : 'degraded',
-          engine: 'node:sqlite (WAL mode)',
-          storageMode: isServerless ? 'serverless-ephemeral (/tmp)' : 'persistent (local disk)',
-          latencyMs: latency
+          status: 'standby',
+          engine: 'MongoDB Atlas',
+          storageMode: 'in-memory (awaiting MONGODB_URI in Vercel settings)',
+          message: 'Set MONGODB_URI in Vercel Environment Variables to connect your MongoDB Atlas cluster.'
         },
         environment: process.env.NODE_ENV || 'production'
       },
@@ -58,7 +52,7 @@ export async function GET() {
       {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        engine: usingMySql ? 'MySQL' : 'node:sqlite',
+        engine: 'MongoDB Atlas',
         error: error instanceof Error ? error.message : 'Database ping failure'
       },
       { status: 503 }
